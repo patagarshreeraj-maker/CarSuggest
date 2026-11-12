@@ -143,6 +143,30 @@
   animation: marquee 32s linear infinite;
 }
 
+@keyframes marquee-reverse {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.animate-marquee-reverse {
+  animation: marquee-reverse 38s linear infinite;
+}
+
+@keyframes marquee-slow {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee-slow {
+  animation: marquee-slow 48s linear infinite;
+}
+
 /* Animated gradient sweep (used on hero headline text) */
 @keyframes gradient-x {
   0%, 100% {

@@ -4,8 +4,9 @@
  */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useUser } from '@clerk/react';
 import { Sparkles } from 'lucide-react';
+import { useAuth, authHeaders } from './context/AuthContext';
+import { AuthModal } from './components/AuthModal';
 import { CARS_DATASET } from './data/cars';
 import { calculateRecommendations } from './lib/recommendationEngine';
 import { 
@@ -28,9 +29,18 @@ import { OwnershipStudio } from './components/OwnershipStudio';
 import { AiChatDrawer } from './components/AiChatDrawer';
 
 export default function App() {
-  // Clerk auth state
-  const { isSignedIn } = useUser();
+  // Auth state
+  const { user } = useAuth();
+  const isSignedIn = Boolean(user);
   const wasSignedInRef = useRef<boolean | null>(null);
+
+  // Auth modal
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalView, setAuthModalView] = useState<'sign-in' | 'sign-up'>('sign-in');
+  const openAuthModal = (view: 'sign-in' | 'sign-up' = 'sign-in') => {
+    setAuthModalView(view);
+    setIsAuthModalOpen(true);
+  };
 
   // Navigation State
   const [activeTab, setActiveTab] = useState<'discover' | 'recommendations' | 'explore' | 'compare' | 'ownership' | 'dashboard'>('discover');
@@ -87,6 +97,78 @@ export default function App() {
     wasSignedInRef.current = isSignedIn;
   }, [isSignedIn]);
 
+  // Sync user data with backend on login
+  useEffect(() => {
+    if (!user) return;
+    let isMounted = true;
+
+    async function loadCloudUserData() {
+      try {
+        const headers = { 'Content-Type': 'application/json', ...authHeaders() };
+
+        // 1. Favorites
+        const favRes = await fetch('/api/user/favorites', { headers });
+        if (favRes.ok) {
+          const { carIds } = await favRes.json();
+          if (isMounted && Array.isArray(carIds) && carIds.length > 0) {
+            const cloudCars = CARS_DATASET.filter((c) => carIds.includes(c.id));
+            setFavoriteCars((prev) => {
+              const merged = [...cloudCars];
+              prev.forEach((localCar) => {
+                if (!merged.some((c) => c.id === localCar.id)) {
+                  merged.push(localCar);
+                  fetch('/api/user/favorites', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ carId: localCar.id, action: 'add' })
+                  }).catch(() => {});
+                }
+              });
+              return merged;
+            });
+          } else if (favoriteCars.length > 0) {
+            favoriteCars.forEach((c) => {
+              fetch('/api/user/favorites', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ carId: c.id, action: 'add' })
+              }).catch(() => {});
+            });
+          }
+        }
+
+        // 2. Comparisons
+        const compRes = await fetch('/api/user/comparisons', { headers });
+        if (compRes.ok) {
+          const { carIds } = await compRes.json();
+          if (isMounted && Array.isArray(carIds) && carIds.length > 0) {
+            const cloudCompCars = CARS_DATASET.filter((c) => carIds.includes(c.id));
+            if (cloudCompCars.length > 0) {
+              setComparedCars(cloudCompCars);
+            }
+          }
+        }
+
+        // 3. Preferences
+        const prefRes = await fetch('/api/user/preferences', { headers });
+        if (prefRes.ok) {
+          const { preferences } = await prefRes.json();
+          if (isMounted && preferences) {
+            setUserPreferences(preferences);
+          }
+        }
+      } catch (err) {
+        console.error('Error syncing cloud user data:', err);
+      }
+    }
+
+    loadCloudUserData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
   // Persist Favorites & Compare
   useEffect(() => {
     try {
@@ -127,6 +209,13 @@ export default function App() {
   const handleToggleFavorite = (car: Car) => {
     setFavoriteCars((prev) => {
       const exists = prev.some((c) => c.id === car.id);
+      if (user) {
+        fetch('/api/user/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ carId: car.id, action: exists ? 'remove' : 'add' })
+        }).catch(() => {});
+      }
       if (exists) {
         return prev.filter((c) => c.id !== car.id);
       } else {
@@ -138,24 +227,54 @@ export default function App() {
   const handleToggleCompare = (car: Car) => {
     setComparedCars((prev) => {
       const exists = prev.some((c) => c.id === car.id);
+      let updated: Car[];
       if (exists) {
-        return prev.filter((c) => c.id !== car.id);
+        updated = prev.filter((c) => c.id !== car.id);
       } else {
         if (prev.length >= 4) {
-          return [...prev.slice(1), car]; // Max 4 cars
+          updated = [...prev.slice(1), car]; // Max 4 cars
+        } else {
+          updated = [...prev, car];
         }
-        return [...prev, car];
       }
+      if (user) {
+        fetch('/api/user/comparisons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ carIds: updated.map((c) => c.id) })
+        }).catch(() => {});
+      }
+      return updated;
     });
   };
 
   const handleRemoveComparedCar = (carId: string) => {
-    setComparedCars((prev) => prev.filter((c) => c.id !== carId));
+    setComparedCars((prev) => {
+      const updated = prev.filter((c) => c.id !== carId);
+      if (user) {
+        fetch('/api/user/comparisons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ carIds: updated.map((c) => c.id) })
+        }).catch(() => {});
+      }
+      return updated;
+    });
   };
 
   const handleAddComparedCar = (car: Car) => {
     if (!comparedCars.some((c) => c.id === car.id) && comparedCars.length < 4) {
-      setComparedCars((prev) => [...prev, car]);
+      setComparedCars((prev) => {
+        const updated = [...prev, car];
+        if (user) {
+          fetch('/api/user/comparisons', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            body: JSON.stringify({ carIds: updated.map((c) => c.id) })
+          }).catch(() => {});
+        }
+        return updated;
+      });
     }
   };
 
@@ -166,6 +285,13 @@ export default function App() {
       localStorage.setItem('driveai_user_preferences', JSON.stringify(prefs));
     } catch (e) {
       console.error(e);
+    }
+    if (user) {
+      fetch('/api/user/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ preferences: prefs })
+      }).catch(() => {});
     }
 
     // Step 1: Calculate deterministic multi-factor scored rankings immediately
@@ -231,6 +357,13 @@ export default function App() {
       }
       const prefs: UserPreferences = await res.json();
       setUserPreferences(prefs);
+      if (user) {
+        fetch('/api/user/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ preferences: prefs })
+        }).catch(() => {});
+      }
       const ranked = calculateRecommendations(prefs, CARS_DATASET);
       setScoredCars(ranked);
     } catch (err) {
@@ -308,6 +441,7 @@ export default function App() {
         compareCount={comparedCars.length}
         onOpenChat={() => setIsChatOpen(true)}
         hasRecommendations={scoredCars.length > 0}
+        onOpenAuthModal={openAuthModal}
       />
 
       {/* Main View Area */}
@@ -488,6 +622,13 @@ export default function App() {
           setSelectedCarForDetails(car);
           setIsChatOpen(false);
         }}
+      />
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialView={authModalView}
       />
     </div>
   );

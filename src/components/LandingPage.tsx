@@ -28,8 +28,7 @@ import {
 } from 'lucide-react';
 import { Car, ScoredCar, UserPreferences } from '../types';
 import { calculateRecommendations } from '../lib/recommendationEngine';
-import { BrandMarquee } from './BrandMarquee';
-import { CarCard } from './CarCard';
+import { BrandLogosScroll } from './BrandLogosScroll';
 import { CarImage } from './CarImage';
 
 /* ------------------------------------------------------------------ */
@@ -982,70 +981,6 @@ const MatchDemo: React.FC<{
   );
 };
 
-const Featured: React.FC<{
-  picks: { car: Car; label: string }[];
-  ranked: ReturnType<typeof calculateRecommendations>;
-  favoriteCarIds: string[];
-  comparedCarIds: string[];
-  onToggleFavorite: (car: Car) => void;
-  onToggleCompare: (car: Car) => void;
-  onViewCarDetails: (car: Car) => void;
-  onExploreCars: () => void;
-}> = ({ picks, ranked, favoriteCarIds, comparedCarIds, onToggleFavorite, onToggleCompare, onViewCarDetails, onExploreCars }) => (
-  <section className="border-y border-slate-200 bg-white">
-    <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-      <Reveal className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-2xl">
-          <p className="eyebrow">From the catalogue</p>
-          <h2 className="heading-2 mt-4 text-slate-900">Three cars worth a closer look</h2>
-          <p className="body-3 mt-4">
-            Picked by the numbers, not by a sponsorship: the strongest crash rating, the longest electric range and the
-            roomiest cabin for the money.
-          </p>
-        </div>
-        <button
-          onClick={onExploreCars}
-          className="group inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-[#F7F9FC] px-4 py-2 text-sm font-semibold text-slate-700 transition-colors duration-300 hover:border-emerald-600/40 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-        >
-          See every model
-          <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-        </button>
-      </Reveal>
-
-      <div className="mt-12 grid gap-6 md:grid-cols-3">
-        {picks.map(({ car, label }, i) => (
-          <motion.div
-            key={car.id}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-60px' }}
-            variants={{
-              hidden: { opacity: 0, y: 36 },
-              show: { opacity: 1, y: 0, transition: { duration: 0.65, delay: i * 0.1, ease: EASE } }
-            }}
-            className="flex flex-col"
-          >
-            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
-              {label}
-            </div>
-            <div className="h-full">
-              <CarCard
-                car={car}
-                matchScore={ranked.find((entry) => entry.car.id === car.id)?.scores}
-                isFavorite={favoriteCarIds.includes(car.id)}
-                isCompared={comparedCarIds.includes(car.id)}
-                onToggleFavorite={onToggleFavorite}
-                onToggleCompare={onToggleCompare}
-                onViewDetails={onViewCarDetails}
-              />
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
 const Coverage: React.FC<{ models: number; brands: number; fiveStar: number; electric: number }> = ({
   models,
   brands,
@@ -1230,32 +1165,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     return { models: cars.length, brands: brands.size, fiveStar, electric };
   }, [cars]);
 
-  const picks = useMemo(() => {
-    const seen = new Set<string>();
-    const add = (car: Car | undefined, label: string) => {
-      if (!car || seen.has(car.id)) return null;
-      seen.add(car.id);
-      return { car, label };
-    };
-
-    const safest = [...cars].sort(
-      (a, b) =>
-        (b.safety.ratingStars ?? 0) - (a.safety.ratingStars ?? 0) || a.priceMinLakh - b.priceMinLakh
-    )[0];
-    const ev = [...cars]
-      .filter((car) => car.fuelTypes.includes('Electric'))
-      .sort((a, b) => (b.specs.rangeKm ?? 0) - (a.specs.rangeKm ?? 0))[0];
-    const family = [...cars]
-      .filter((car) => car.specs.seatingCapacity >= 7)
-      .sort((a, b) => a.priceMinLakh - b.priceMinLakh)[0];
-
-    return [
-      add(safest, 'Strongest crash rating'),
-      add(ev, 'Longest electric range'),
-      add(family, 'Most room for the money')
-    ].filter((item): item is { car: Car; label: string } => item !== null);
-  }, [cars]);
-
   const heroEntry = ranked[0];
 
   if (!heroEntry) return null;
@@ -1277,8 +1186,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         onViewCarDetails={onViewCarDetails}
       />
 
-      <BrandMarquee />
-
       <TaglineReveal />
 
       <Benefits />
@@ -1287,16 +1194,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       <MatchDemo ranked={ranked} onViewCarDetails={onViewCarDetails} onStartFinder={onStartFinder} />
 
-      <Featured
-        picks={picks}
-        ranked={ranked}
-        favoriteCarIds={favoriteCarIds}
-        comparedCarIds={comparedCarIds}
-        onToggleFavorite={onToggleFavorite}
-        onToggleCompare={onToggleCompare}
-        onViewCarDetails={onViewCarDetails}
-        onExploreCars={onExploreCars}
-      />
+      <BrandLogosScroll onExploreCars={onExploreCars} />
 
       <Coverage
         models={stats.models}

@@ -1,67 +1,71 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { ALL_CAR_BRANDS, BrandInfo } from '../data/brands';
 
-interface BrandItem {
-  name: string;
-  tag: string;
-}
-
-const BRANDS: BrandItem[] = [
-  { name: 'Maruti Suzuki', tag: 'Mileage' },
-  { name: 'Hyundai', tag: 'ADAS' },
-  { name: 'Tata', tag: '5★ BNCAP' },
-  { name: 'Mahindra', tag: 'EV Range' },
-  { name: 'Toyota', tag: 'Hybrid' },
-  { name: 'Kia', tag: 'Design' },
-  { name: 'Honda', tag: 'Reliability' },
-  { name: 'MG', tag: 'Smart EV' },
-  { name: 'Renault', tag: 'Value' },
-  { name: 'Nissan', tag: 'Turbo' },
-  { name: 'Volkswagen', tag: 'German Build' },
-  { name: 'Skoda', tag: '1.5 TSI' },
-  { name: 'Jeep', tag: 'Off-Road' },
-  { name: 'Citroën', tag: 'Comfort' },
-  { name: 'Force Motors', tag: '4x4' },
-  { name: 'Isuzu', tag: 'Diesel' },
-  { name: 'BYD', tag: 'Blade EV' },
-  { name: 'Volvo', tag: 'Safety' },
-  { name: 'BMW', tag: 'Driving' },
-  { name: 'Mercedes-Benz', tag: 'Luxury' },
-  { name: 'Audi', tag: 'Quattro' },
-  { name: 'Lexus', tag: 'Craft' },
-  { name: 'Land Rover', tag: 'Capability' },
-  { name: 'Jaguar', tag: 'Style' },
-  { name: 'MINI', tag: 'Fun' },
-  { name: 'Porsche', tag: 'Precision' },
-  { name: 'Lamborghini', tag: 'V12' },
-  { name: 'Ferrari', tag: 'V6 Hybrid' },
-  { name: 'Maserati', tag: 'Italian' },
-  { name: 'McLaren', tag: 'Race' },
-  { name: 'Aston Martin', tag: 'GT' },
-  { name: 'Bentley', tag: 'Handcrafted' },
-  { name: 'Rolls-Royce', tag: 'Bespoke' },
-  { name: 'Tesla', tag: 'Electric' },
-  { name: 'VinFast', tag: 'New Entrant' }
-];
-
-export const BrandMarquee: React.FC = () => {
-  // Duplicate the row so the -50% translate loops seamlessly
-  const row = [...BRANDS, ...BRANDS];
+export const BrandMarquee: React.FC<{
+  onSelectBrand?: (brand: string) => void;
+}> = ({ onSelectBrand }) => {
+  // Duplicate for seamless infinite marquee loop
+  const row = [...ALL_CAR_BRANDS, ...ALL_CAR_BRANDS];
 
   return (
-    <div className="relative overflow-hidden py-7 border-y border-slate-200 bg-slate-50 [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
-      <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500 text-center mb-4">
-        Every major brand in the Indian market
+    <div className="relative overflow-hidden border-y border-slate-200 bg-slate-50/80 py-6 [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+      <p className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">
+        Every major car brand in the Indian market
       </p>
-      <div className="flex w-max animate-marquee gap-12 hover:[animation-play-state:paused]">
+      <div className="flex w-max animate-marquee gap-8 hover:[animation-play-state:paused]">
         {row.map((brand, i) => (
-          <div key={i} className="flex items-center gap-2.5 shrink-0">
-            <span className="text-sm font-bold text-slate-500 font-['Manrope']">{brand.name}</span>
-            <span className="text-[10px] font-semibold text-emerald-600/90 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-              {brand.tag}
-            </span>
-          </div>
+          <BrandMarqueeItem
+            key={`${brand.slug}-${i}`}
+            brand={brand}
+            onClick={() => onSelectBrand?.(brand.name)}
+          />
         ))}
       </div>
+    </div>
+  );
+};
+
+const BrandMarqueeItem: React.FC<{
+  brand: BrandInfo;
+  onClick?: () => void;
+}> = ({ brand, onClick }) => {
+  const [imgSrc, setImgSrc] = useState(brand.logo);
+  const [hasError, setHasError] = useState(false);
+
+  return (
+    <div
+      onClick={onClick}
+      className={`flex shrink-0 items-center gap-3 rounded-full border border-slate-200/80 bg-white px-4 py-2 shadow-2xs transition-all duration-300 hover:border-emerald-500/40 hover:shadow-xs ${
+        onClick ? 'cursor-pointer' : ''
+      }`}
+    >
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center">
+        {!hasError ? (
+          <img
+            src={imgSrc}
+            alt={brand.name}
+            loading="lazy"
+            onError={() => {
+              if (imgSrc !== brand.fallbackLogo) {
+                setImgSrc(brand.fallbackLogo);
+              } else {
+                setHasError(true);
+              }
+            }}
+            className="h-full w-full object-contain"
+          />
+        ) : (
+          <span className="text-[10px] font-bold text-slate-600">
+            {brand.name.slice(0, 2).toUpperCase()}
+          </span>
+        )}
+      </div>
+      <span className="font-['Manrope'] text-xs font-bold text-slate-800">
+        {brand.name}
+      </span>
+      <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+        {brand.tag.split(' ')[0]}
+      </span>
     </div>
   );
 };

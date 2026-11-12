@@ -1,233 +1,163 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured, fetchUserProfile, upsertUserProfile } from '../lib/supabase';
-import { UserProfile } from '../types';
 
-type AuthModalView = 'sign-in' | 'sign-up' | 'forgot-password' | 'setup';
+export interface AuthUser {
+  id: string;
+  email: string;
+  fullName: string;
+  avatarUrl?: string | null;
+  createdAt?: string;
+}
+
+interface AuthSession {
+  access_token: string;
+  refresh_token: string;
+  expires_at?: number;
+}
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  profile: UserProfile | null;
+  user: AuthUser | null;
   loading: boolean;
-  isConfigured: boolean;
-  isAuthModalOpen: boolean;
-  authModalView: AuthModalView;
-  openAuthModal: (view?: AuthModalView) => void;
-  closeAuthModal: () => void;
-  signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUpWithEmail: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null; needsConfirmation?: boolean }>;
-  signInWithOtp: (email: string) => Promise<{ error: Error | null }>;
-  signInWithOAuth: (provider: 'google' | 'github') => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: string | null; needsConfirmation?: boolean }>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: Error | null }>;
-  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const TOKEN_KEY = 'driveai_access_token';
+const REFRESH_KEY = 'driveai_refresh_token';
+
+function storeSession(session: AuthSession) {
+  localStorage.setItem(TOKEN_KEY, session.access_token);
+  localStorage.setItem(REFRESH_KEY, session.refresh_token);
+}
+
+function clearSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_KEY);
+}
+
+function getStoredToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function getStoredRefreshToken() {
+  return localStorage.getItem(REFRESH_KEY);
+}
+
+/** Attach the Bearer token to any fetch call to a protected backend route */
+export function authHeaders(): Record<string, string> {
+  const token = getStoredToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalView, setAuthModalView] = useState<AuthModalView>('sign-in');
 
-  const configured = isSupabaseConfigured();
-
-  const loadProfile = useCallback(async (currentUser: User) => {
-    try {
-      const dbProfile = await fetchUserProfile(currentUser.id);
-      if (dbProfile) {
-        setProfile(dbProfile);
-      } else {
-        // Fallback to user_metadata from auth
-        const metaName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || currentUser.email?.split('@')[0];
-        const newProfile: UserProfile = {
-          id: currentUser.id,
-          email: currentUser.email,
-          fullName: metaName,
-          avatarUrl: currentUser.user_metadata?.avatar_url || null,
-          createdAt: currentUser.created_at
-        };
-        setProfile(newProfile);
-        // Best effort create profile in DB
-        await upsertUserProfile(newProfile);
-      }
-    } catch (e) {
-      console.error('Error loading profile:', e);
-    }
-  }, []);
-
+  // On mount, check if we have a stored token and validate it
   useEffect(() => {
-    if (!configured) {
+    const token = getStoredToken();
+    if (!token) {
       setLoading(false);
       return;
     }
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadProfile(session.user);
-      }
-      setLoading(false);
-    }).catch(err => {
-      console.error('Supabase getSession error:', err);
-      setLoading(false);
-    });
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      setSession(newSession);
-      const currentUser = newSession?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await loadProfile(currentUser);
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [configured, loadProfile]);
-
-  const openAuthModal = (view: AuthModalView = 'sign-in') => {
-    setAuthModalView(view);
-    setIsAuthModalOpen(true);
-  };
-
-  const closeAuthModal = () => {
-    setIsAuthModalOpen(false);
-  };
-
-  const signInWithEmail = async (email: string, password: string) => {
-    if (!configured) {
-      openAuthModal('setup');
-      return { error: new Error('Supabase is not configured yet. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.') };
-    }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (!error) {
-      closeAuthModal();
-    }
-    return { error };
-  };
-
-  const signUpWithEmail = async (email: string, password: string, fullName?: string) => {
-    if (!configured) {
-      openAuthModal('setup');
-      return { error: new Error('Supabase is not configured yet.') };
-    }
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          name: fullName
+    fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+        } else {
+          // Token expired — try refresh
+          const refreshToken = getStoredRefreshToken();
+          if (refreshToken) {
+            const refreshRes = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refresh_token: refreshToken })
+            });
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              storeSession(refreshData.session);
+              setUser(refreshData.user);
+            } else {
+              clearSession();
+            }
+          } else {
+            clearSession();
+          }
         }
+      })
+      .catch(() => {
+        clearSession();
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    try {
+      const res = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || 'Sign-in failed' };
+
+      storeSession(data.session);
+      setUser(data.user);
+      return { error: null };
+    } catch {
+      return { error: 'Network error' };
+    }
+  }, []);
+
+  const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, fullName })
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || 'Sign-up failed' };
+
+      if (data.session) {
+        storeSession(data.session);
+        setUser(data.user);
       }
-    });
-
-    if (error) {
-      return { error };
+      return { error: null, needsConfirmation: data.needsConfirmation };
+    } catch {
+      return { error: 'Network error' };
     }
+  }, []);
 
-    const needsConfirmation = !data.session;
-    if (!needsConfirmation) {
-      closeAuthModal();
+  const signOut = useCallback(async () => {
+    const token = getStoredToken();
+    if (token) {
+      fetch('/api/auth/signout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(() => {});
     }
-    return { error: null, needsConfirmation };
-  };
-
-  const signInWithOtp = async (email: string) => {
-    if (!configured) {
-      openAuthModal('setup');
-      return { error: new Error('Supabase is not configured yet.') };
-    }
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: window.location.origin
-      }
-    });
-    return { error };
-  };
-
-  const signInWithOAuth = async (provider: 'google' | 'github') => {
-    if (!configured) {
-      openAuthModal('setup');
-      return { error: new Error('Supabase is not configured yet.') };
-    }
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
-    return { error };
-  };
-
-  const signOut = async () => {
-    if (!configured) return;
-    await supabase.auth.signOut();
+    clearSession();
     setUser(null);
-    setSession(null);
-    setProfile(null);
-  };
-
-  const resetPassword = async (email: string) => {
-    if (!configured) {
-      openAuthModal('setup');
-      return { error: new Error('Supabase is not configured yet.') };
-    }
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/#reset-password`
-    });
-    return { error };
-  };
-
-  const refreshProfile = async () => {
-    if (user) {
-      await loadProfile(user);
-    }
-  };
+  }, []);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        profile,
-        loading,
-        isConfigured: configured,
-        isAuthModalOpen,
-        authModalView,
-        openAuthModal,
-        closeAuthModal,
-        signInWithEmail,
-        signUpWithEmail,
-        signInWithOtp,
-        signInWithOAuth,
-        signOut,
-        resetPassword,
-        refreshProfile
-      }}
-    >
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
 };
