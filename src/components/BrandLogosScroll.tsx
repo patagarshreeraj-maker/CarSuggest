@@ -158,3 +158,4 @@ export const BrandLogosScroll: React.FC<BrandLogosScrollProps> = ({
     </section>
   );
 };
+

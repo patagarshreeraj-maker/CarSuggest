@@ -289,3 +289,4 @@ export const ALL_CAR_BRANDS: BrandInfo[] = [
     origin: 'Vietnam'
   }
 ];
+
