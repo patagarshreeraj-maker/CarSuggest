@@ -12,8 +12,7 @@ import {
   UserPlus,
   LayoutDashboard,
   LogOut,
-  ChevronDown,
-  Database
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -43,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   savedCarsCount,
   hasRecommendations = false
 }) => {
-  const { user, profile, signOut, openAuthModal, isConfigured } = useAuth();
+  const { user, profile, signOut, openAuthModal } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -202,16 +201,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <UserPlus className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Sign Up</span>
               </button>
-              {!isConfigured && (
-                <button
-                  onClick={() => openAuthModal('setup')}
-                  className="hidden lg:flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition-colors cursor-pointer"
-                  title="Configure Supabase"
-                >
-                  <Database className="w-3 h-3 text-amber-600" />
-                  Supabase Setup
-                </button>
-              )}
             </div>
           ) : (
             <div className="relative" ref={menuRef}>
