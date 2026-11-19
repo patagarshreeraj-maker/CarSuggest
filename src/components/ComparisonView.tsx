@@ -105,25 +105,25 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
       {/* Top Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Manrope'] flex items-center gap-2.5">
-            <ArrowLeftRight className="w-6 h-6 text-emerald-600" />
-            Side-by-Side Vehicle Comparison
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#101624] dark:text-[#eef2fb] font-['Unbounded',sans-serif] flex items-center gap-2.5 tracking-tight">
+            <ArrowLeftRight className="w-6 h-6 text-[#ff5a1f]" />
+            Side-by-Side Comparison
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[#556078] dark:text-[#9aa6c0]">
             Evaluating {cars.length} cars with detailed spec matrix & AI jury verdict.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Highlight Differences Toggle */}
-          <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none bg-white px-3 py-2 rounded-xl border border-slate-200">
+          <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200 cursor-pointer select-none bg-white/70 dark:bg-slate-800/70 backdrop-blur-md px-3.5 py-2 rounded-full border border-[#101624]/10 dark:border-white/10 shadow-sm">
             <input
               type="checkbox"
               checked={highlightDifferences}
               onChange={(e) => setHighlightDifferences(e.target.checked)}
-              className="rounded accent-emerald-400"
+              className="rounded accent-[#ff5a1f]"
             />
-            <span>Highlight Differences</span>
+            <span className="font-semibold text-xs">Highlight Differences</span>
           </label>
 
           {/* Add Car Dropdown */}
@@ -131,15 +131,15 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
             <div className="relative">
               <button
                 onClick={() => setShowAddDropdown(!showAddDropdown)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-200 border border-slate-200 text-emerald-600 text-xs font-semibold rounded-xl transition-all"
+                className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 border border-[#101624]/10 dark:border-white/10 text-[#101624] dark:text-white text-xs font-bold rounded-full transition-all cursor-pointer shadow-sm"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 text-[#ff5a1f]" />
                 Add Car ({cars.length}/4)
               </button>
 
               {showAddDropdown && (
-                <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl p-2 shadow-2xl z-30 max-h-64 overflow-y-auto space-y-1">
-                  <div className="text-[10px] font-bold text-slate-500 px-2 py-1 uppercase">Select Car to Compare</div>
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-[#101624]/10 dark:border-white/10 rounded-2xl p-2 shadow-2xl z-30 max-h-64 overflow-y-auto space-y-1">
+                  <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">Select Car to Compare</div>
                   {availableCarsToAdd.map((c) => (
                     <button
                       key={c.id}
@@ -147,10 +147,10 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                         onAddCar(c);
                         setShowAddDropdown(false);
                       }}
-                      className="w-full text-left p-2 rounded-xl hover:bg-slate-50 flex items-center justify-between text-xs text-slate-800"
+                      className="w-full text-left p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-between text-xs text-slate-800 dark:text-slate-200 cursor-pointer"
                     >
-                      <span>{c.brand} {c.model}</span>
-                      <span className="text-[10px] text-emerald-600 font-bold">₹{c.priceMinLakh}L</span>
+                      <span className="font-semibold">{c.brand} {c.model}</span>
+                      <span className="text-[10px] text-[#ff5a1f] font-bold">₹{c.priceMinLakh}L</span>
                     </button>
                   ))}
                 </div>
@@ -163,51 +163,51 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
             <button
               onClick={handleGenerateVerdict}
               disabled={isGeneratingVerdict}
-              className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#101624] dark:bg-[#eef2fb] hover:bg-black dark:hover:bg-white text-white dark:text-[#101624] font-bold text-xs rounded-full shadow-lg hover:shadow-[0_8px_20px_-4px_#ff5a1f] transition-all cursor-pointer disabled:opacity-50"
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 text-[#ff5a1f]" />
               <span>{isGeneratingVerdict ? 'Analyzing...' : 'Generate AI Verdict'}</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* AI Comparison Verdict Panel (PRD Section 16) */}
+      {/* AI Comparison Verdict Panel */}
       {verdictData && (
-        <div className="p-6 rounded-3xl bg-gradient-to-b from-[#131B26] to-[#0E131C] border border-emerald-500/40 shadow-xl shadow-emerald-500/10 space-y-4">
+        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-[#101624] to-[#0a1020] text-white border border-[#ff5a1f]/35 shadow-xl shadow-[#ff5a1f]/10 space-y-5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-[#ff5a1f] text-xs font-bold uppercase tracking-wider">
               <Sparkles className="w-4 h-4" />
-              <span>DriveAI Comparison Verdict</span>
+              <span>CarSuggest AI Comparison Verdict</span>
             </div>
             <button
               onClick={() => onAskAi(`Help me choose between ${cars.map(c => c.model).join(' and ')} based on my family needs`)}
-              className="text-xs text-emerald-600 hover:text-emerald-600 flex items-center gap-1 font-semibold"
+              className="text-xs text-[#ff5a1f] hover:underline flex items-center gap-1 font-bold cursor-pointer"
             >
               <MessageSquare className="w-3.5 h-3.5" /> Ask AI Follow-up &rarr;
             </button>
           </div>
 
-          <p className="text-sm text-slate-800 leading-relaxed font-medium">
+          <p className="text-sm text-slate-200 leading-relaxed font-normal">
             {verdictData.verdict}
           </p>
 
           {/* Category Winners Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
             {[
-              { title: 'Best Overall Pick', carId: verdictData.bestOverallCarId, badgeColor: 'border-emerald-400 text-emerald-600' },
-              { title: 'Best Mileage / EV', carId: verdictData.bestMileageCarId, badgeColor: 'border-cyan-400 text-cyan-600' },
-              { title: 'Best Performance', carId: verdictData.bestPerformanceCarId, badgeColor: 'border-amber-400 text-amber-600' },
-              { title: 'Best Value for Money', carId: verdictData.bestValueForMoneyCarId, badgeColor: 'border-teal-400 text-teal-600' }
+              { title: 'Best Overall Pick', carId: verdictData.bestOverallCarId, badgeColor: 'border-[#ff5a1f]/40 text-[#ff5a1f]' },
+              { title: 'Best Mileage / EV', carId: verdictData.bestMileageCarId, badgeColor: 'border-cyan-400 text-cyan-400' },
+              { title: 'Best Performance', carId: verdictData.bestPerformanceCarId, badgeColor: 'border-amber-400 text-amber-400' },
+              { title: 'Best Value for Money', carId: verdictData.bestValueForMoneyCarId, badgeColor: 'border-emerald-400 text-emerald-400' }
             ].map((winner, idx) => {
               const winningCar = cars.find(c => c.id === winner.carId) || cars[0];
               return (
-                <div key={idx} className={`p-3 rounded-2xl bg-white border ${winner.badgeColor} space-y-1`}>
-                  <div className="text-[10px] text-slate-500 font-semibold">{winner.title}</div>
-                  <div className="text-sm font-bold text-slate-900 font-['Manrope'] truncate">
+                <div key={idx} className={`p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border ${winner.badgeColor} space-y-1`}>
+                  <div className="text-[10px] text-slate-400 font-semibold">{winner.title}</div>
+                  <div className="text-sm font-bold text-white font-['Unbounded',sans-serif] truncate">
                     {winningCar.brand} {winningCar.model}
                   </div>
-                  <div className="text-[10px] text-emerald-600 font-bold">
+                  <div className="text-[10px] text-[#ff5a1f] font-bold">
                     ₹{winningCar.priceMinLakh}L onwards
                   </div>
                 </div>
@@ -216,8 +216,8 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
           </div>
 
           {/* Final Advice */}
-          <div className="p-3.5 rounded-2xl bg-slate-100 border border-slate-200 text-xs text-slate-600">
-            <span className="font-bold text-emerald-600">Buying Recommendation: </span>
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-300">
+            <span className="font-bold text-[#ff5a1f]">Buying Recommendation: </span>
             {verdictData.finalAdvice}
           </div>
         </div>

@@ -83,11 +83,11 @@ export const OwnershipStudio: React.FC<OwnershipStudioProps> = ({
     <div className="py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       {/* Header */}
       <div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Manrope'] flex items-center gap-2.5">
-          <Calculator className="w-7 h-7 text-emerald-600" />
-          5-Year Total Cost of Ownership (TCO) Studio
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#101624] dark:text-[#eef2fb] font-['Unbounded',sans-serif] flex items-center gap-2.5 tracking-tight">
+          <Calculator className="w-7 h-7 text-[#ff5a1f]" />
+          5-Year Ownership Studio (TCO)
         </h2>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-[#556078] dark:text-[#9aa6c0] mt-1">
           True car costs go beyond showroom price. Calculate loan interest, RTO road taxes, insurance, fuel/EV electricity, and resale value recovery.
         </p>
       </div>
@@ -95,22 +95,22 @@ export const OwnershipStudio: React.FC<OwnershipStudioProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Input Parameters & Configuration */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="p-6 rounded-3xl bg-white border border-slate-200 space-y-5">
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
+          <div className="p-6 sm:p-7 rounded-3xl bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl border border-[#101624]/10 dark:border-white/10 shadow-sm space-y-5">
+            <h3 className="text-sm font-bold text-[#101624] dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#ff5a1f]" />
               Configure Vehicle & Loan
             </h3>
 
             {/* Vehicle Selection */}
             <div>
-              <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Select Vehicle:</label>
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 block">Select Vehicle:</label>
               <select
                 value={selectedCarId}
                 onChange={(e) => {
                   setSelectedCarId(e.target.value);
                   setSelectedVariantIndex(0);
                 }}
-                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-white dark:bg-slate-800 border border-[#101624]/15 dark:border-white/15 rounded-xl px-3 py-2.5 text-xs text-[#101624] dark:text-white focus:outline-none focus:border-[#ff5a1f]"
               >
                 {allCars.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -122,11 +122,11 @@ export const OwnershipStudio: React.FC<OwnershipStudioProps> = ({
 
             {/* Variant Selection */}
             <div>
-              <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Select Variant / Trim:</label>
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 block">Select Variant / Trim:</label>
               <select
                 value={selectedVariantIndex}
                 onChange={(e) => setSelectedVariantIndex(Number(e.target.value))}
-                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-white dark:bg-slate-800 border border-[#101624]/15 dark:border-white/15 rounded-xl px-3 py-2.5 text-xs text-[#101624] dark:text-white focus:outline-none focus:border-[#ff5a1f]"
               >
                 {selectedCar.variants.map((v, i) => (
                   <option key={i} value={i}>
@@ -139,8 +139,8 @@ export const OwnershipStudio: React.FC<OwnershipStudioProps> = ({
             {/* Down Payment % Slider */}
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-600">Down Payment ({downPaymentPercent}%):</span>
-                <span className="font-bold text-emerald-600 font-['Manrope']">
+                <span className="text-slate-600 dark:text-slate-300 font-medium">Down Payment ({downPaymentPercent}%):</span>
+                <span className="font-bold text-[#ff5a1f] font-['Unbounded',sans-serif]">
                   ₹{primaryTco.downPaymentAmount.toLocaleString('en-IN')}
                 </span>
               </div>

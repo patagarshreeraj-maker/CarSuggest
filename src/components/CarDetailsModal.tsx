@@ -23,6 +23,7 @@ import {
 import { Car } from '../types';
 import { calculateOwnershipCost } from '../lib/ownershipCalculator';
 import { CarImage } from './CarImage';
+import { EmiCalculatorWidget } from './EmiCalculatorWidget';
 
 interface CarDetailsModalProps {
   car: Car | null;
@@ -45,7 +46,7 @@ export const CarDetailsModal: React.FC<CarDetailsModalProps> = ({
   onAskAi,
   onOpenFullOwnership
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'specs' | 'safety' | 'variants' | 'ownership'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'specs' | 'safety' | 'variants' | 'emi' | 'ownership'>('overview');
   const [activeImageIdx, setActiveImageIdx] = useState(0);
 
   if (!car) return null;
@@ -76,17 +77,17 @@ export const CarDetailsModal: React.FC<CarDetailsModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto">
       <div className="relative w-full max-w-4xl bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
         {/* Modal Top Bar */}
-        <div className="p-4 sm:p-5 border-b border-slate-200 bg-white flex items-center justify-between gap-4 shrink-0">
+        <div className="p-4 sm:p-5 border-b border-[#101624]/10 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
+            <div className="w-8 h-8 rounded-full bg-[#ff5a1f]/10 border border-[#ff5a1f]/30 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-[#ff5a1f]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">{car.brand}</span>
-                <span className="px-2 py-0.2 rounded bg-slate-50 text-slate-600 text-[10px]">{car.bodyType}</span>
+                <span className="text-xs font-bold text-[#ff5a1f] uppercase tracking-wider">{car.brand}</span>
+                <span className="px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-slate-600 dark:text-slate-300 text-[10px] font-semibold">{car.bodyType}</span>
               </div>
-              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 font-['Manrope']">{car.model}</h2>
+              <h2 className="text-lg sm:text-xl font-extrabold text-[#101624] dark:text-[#eef2fb] font-['Unbounded',sans-serif]">{car.model}</h2>
             </div>
           </div>
 
@@ -249,21 +250,22 @@ export const CarDetailsModal: React.FC<CarDetailsModalProps> = ({
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex border-b border-slate-200 gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex border-b border-[#101624]/10 dark:border-white/10 gap-2 overflow-x-auto pb-1 scrollbar-none">
             {[
               { id: 'overview', label: 'Overview & Pros/Cons' },
               { id: 'specs', label: 'Engine & Dimensions' },
               { id: 'safety', label: 'Safety & ADAS Features' },
               { id: 'variants', label: `Variants (${car.variants.length})` },
-              { id: 'ownership', label: '5-Year Cost & EMI' }
+              { id: 'emi', label: 'EMI Calculator' },
+              { id: 'ownership', label: '5-Year Cost' }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all border-b-2 ${
+                className={`px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all border-b-2 cursor-pointer ${
                   activeTab === tab.id
-                    ? 'border-emerald-400 text-emerald-600 bg-emerald-500/5'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                    ? 'border-[#ff5a1f] text-[#ff5a1f] bg-[#ff5a1f]/5 font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -462,7 +464,17 @@ export const CarDetailsModal: React.FC<CarDetailsModalProps> = ({
             </div>
           )}
 
-          {/* TAB 5: Ownership */}
+          {/* TAB 5: EMI Calculator */}
+          {activeTab === 'emi' && (
+            <div className="space-y-4">
+              <EmiCalculatorWidget
+                initialPriceLakh={(car.priceMinLakh + car.priceMaxLakh) / 2}
+                carName={`${car.brand} ${car.name}`}
+              />
+            </div>
+          )}
+
+          {/* TAB 6: Ownership */}
           {activeTab === 'ownership' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">

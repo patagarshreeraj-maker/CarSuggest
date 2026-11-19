@@ -59,13 +59,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   onViewRecommendations,
   onOpenOwnership
 }) => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
 
-  const fullName = profile?.fullName || user?.user_metadata?.full_name || user?.user_metadata?.name || 'User';
+  const fullName = user?.fullName || user?.email?.split('@')[0] || 'User';
   const firstName = fullName.split(' ')[0] || 'there';
-  const email = user?.email || profile?.email;
-  const avatarUrl = profile?.avatarUrl || user?.user_metadata?.avatar_url;
-  const memberSince = user?.created_at ? new Date(user.created_at) : undefined;
+  const email = user?.email;
+  const avatarUrl = user?.avatarUrl;
+  const memberSince = user?.createdAt ? new Date(user.createdAt) : undefined;
 
   const topMatches = scoredCars.slice(0, 3);
   const favIds = new Set(favoriteCars.map((c) => c.id));
@@ -84,46 +84,40 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: 'easeOut' }}
-        className="glass-panel-glow rounded-3xl p-6 sm:p-8 relative overflow-hidden"
+        className="rounded-3xl p-6 sm:p-8 relative overflow-hidden bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl border border-[#101624]/10 dark:border-white/10 shadow-sm"
       >
-        <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none" />
+        <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-[#ff5a1f]/10 blur-[100px] pointer-events-none" />
         <div className="flex flex-col sm:flex-row sm:items-center gap-5 relative">
           {avatarUrl ? (
             <img
               src={avatarUrl}
               alt={firstName}
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-emerald-400/40 shadow-lg shadow-emerald-500/20 object-cover"
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-[#ff5a1f]/40 shadow-lg object-cover"
             />
           ) : (
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-emerald-500 to-cyan-400 flex items-center justify-center text-black font-extrabold text-3xl border-2 border-emerald-400/40 shadow-lg shadow-emerald-500/20">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#101624] dark:bg-white flex items-center justify-center text-white dark:text-[#101624] font-extrabold text-3xl border-2 border-[#ff5a1f]/40 shadow-lg">
               {firstName.charAt(0).toUpperCase()}
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-emerald-600">
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#ff5a1f]">
               <LayoutDashboard className="w-3.5 h-3.5" />
-              My Dashboard
-              <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/25 text-[9px] text-emerald-600">
-                PRO MEMBER
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-teal-500/10 border border-teal-500/25 text-[9px] text-teal-700 font-medium">
-                ☁️ SUPABASE CLOUD
-              </span>
+              CarSuggest Member Dashboard
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Manrope'] mt-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#101624] dark:text-[#eef2fb] font-['Unbounded',sans-serif] mt-1 tracking-tight">
               Welcome back, {firstName} 👋
             </h1>
-            <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-slate-500">
+            <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-[#556078] dark:text-[#9aa6c0]">
               {email && <span className="flex items-center gap-1.5 truncate">{email}</span>}
               {memberSince && (
                 <span className="flex items-center gap-1.5">
-                  <CalendarDays className="w-3.5 h-3.5 text-emerald-600" />
+                  <CalendarDays className="w-3.5 h-3.5 text-[#ff5a1f]" />
                   Member since {formatDate(memberSince)}
                 </span>
               )}
               {userPreferences && (
                 <span className="flex items-center gap-1.5">
-                  <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+                  <Wallet className="w-3.5 h-3.5 text-[#ff5a1f]" />
                   ₹{userPreferences.budgetMinLakh}–{userPreferences.budgetMaxLakh}L · {userPreferences.primaryUsage}
                 </span>
               )}
@@ -131,9 +125,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           </div>
           <button
             onClick={onStartFinder}
-            className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all cursor-pointer"
+            className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-[#101624] dark:bg-[#eef2fb] hover:bg-black dark:hover:bg-white text-white dark:text-[#101624] font-bold text-xs rounded-full shadow-lg hover:shadow-[0_8px_20px_-4px_#ff5a1f] transition-all cursor-pointer"
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 text-[#ff5a1f]" />
             New AI Search
           </button>
         </div>
