@@ -11,7 +11,9 @@ import {
   X, 
   Award,
   TrendingUp,
-  MessageSquare
+  MessageSquare,
+  Share2,
+  Copy
 } from 'lucide-react';
 import { Car, AIComparisonResponse } from '../types';
 import { calculateOwnershipCost } from '../lib/ownershipCalculator';
@@ -38,8 +40,37 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
   const [isGeneratingVerdict, setIsGeneratingVerdict] = useState(false);
   const [verdictData, setVerdictData] = useState<AIComparisonResponse | null>(null);
   const [showAddDropdown, setShowAddDropdown] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const availableCarsToAdd = allCars.filter(c => !cars.some(selected => selected.id === c.id));
+
+  const handleShareWhatsApp = () => {
+    if (cars.length === 0) return;
+    const names = cars.map(c => `${c.brand} ${c.model}`).join(' vs ');
+    const lines = [
+      `🚗 *CarSuggest Comparison: ${names}*`,
+      ``,
+      ...cars.map(c => `• *${c.brand} ${c.model}*: ₹${c.priceMinLakh}L–${c.priceMaxLakh}L | ${c.safety.ratingStars || 5}★ Safety | ${c.specs.mileageKmPerLitreOrKWh} km/l | ${c.specs.powerPS} PS`),
+      ``,
+      `Compare real-world specs, safety & 5-year ownership on CarSuggest:`,
+      window.location.origin
+    ];
+    const text = encodeURIComponent(lines.join('\n'));
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+  };
+
+  const handleCopyComparison = () => {
+    if (cars.length === 0) return;
+    const names = cars.map(c => `${c.brand} ${c.model}`).join(' vs ');
+    const lines = [
+      `CarSuggest Comparison: ${names}`,
+      ...cars.map(c => `• ${c.brand} ${c.model}: ₹${c.priceMinLakh}L–${c.priceMaxLakh}L | ${c.safety.ratingStars || 5}★ Safety | ${c.specs.mileageKmPerLitreOrKWh} km/l`),
+      `View on: ${window.location.href}`
+    ];
+    navigator.clipboard.writeText(lines.join('\n'));
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
 
   const handleGenerateVerdict = async () => {
     if (cars.length < 2) return;
@@ -125,6 +156,25 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
             />
             <span className="font-semibold text-xs">Highlight Differences</span>
           </label>
+
+          {/* Share on WhatsApp */}
+          <button
+            onClick={handleShareWhatsApp}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-full transition-all cursor-pointer shadow-sm"
+            title="Share Comparison on WhatsApp"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">WhatsApp</span>
+          </button>
+
+          {/* Copy Link */}
+          <button
+            onClick={handleCopyComparison}
+            className="p-2 bg-white dark:bg-slate-800 hover:bg-slate-50 border border-[#101624]/10 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-full transition-all cursor-pointer"
+            title="Copy Specs Summary"
+          >
+            {copiedLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+          </button>
 
           {/* Add Car Dropdown */}
           {cars.length < 4 && (

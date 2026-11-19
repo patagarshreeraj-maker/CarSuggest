@@ -13,7 +13,9 @@ import {
   LayoutDashboard,
   LogOut,
   ChevronDown,
-  Percent
+  Percent,
+  MapPin,
+  Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -30,6 +32,8 @@ interface NavbarProps {
   onOpenQuickSearch?: () => void;
   hasRecommendations?: boolean;
   onOpenEmiCalculator?: () => void;
+  onOpenOnRoadPrice?: () => void;
+  onOpenEvBreakEven?: () => void;
   onOpenAuthModal?: (view?: 'sign-in' | 'sign-up') => void;
 }
 
@@ -45,6 +49,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   savedCarsCount,
   hasRecommendations = false,
   onOpenEmiCalculator,
+  onOpenOnRoadPrice,
+  onOpenEvBreakEven,
   onOpenAuthModal
 }) => {
   const { user, signOut } = useAuth();
@@ -188,6 +194,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Percent className="w-3.5 h-3.5 text-[#ff5a1f]" />
               <span>EMI Calc</span>
+            </button>
+          )}
+
+          {onOpenOnRoadPrice && (
+            <button
+              onClick={onOpenOnRoadPrice}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#556078] dark:text-[#9aa6c0] hover:text-[#ff5a1f] hover:bg-[#ff5a1f]/10 transition-all cursor-pointer"
+              title="State-wise On-Road Price Estimator"
+            >
+              <MapPin className="w-3.5 h-3.5 text-[#ff5a1f]" />
+              <span>On-Road</span>
+            </button>
+          )}
+
+          {onOpenEvBreakEven && (
+            <button
+              onClick={onOpenEvBreakEven}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#556078] dark:text-[#9aa6c0] hover:text-[#ff5a1f] hover:bg-[#ff5a1f]/10 transition-all cursor-pointer"
+              title="EV vs Petrol Break-Even Simulator"
+            >
+              <Zap className="w-3.5 h-3.5 text-[#ff5a1f]" />
+              <span>EV Sim</span>
             </button>
           )}
         </nav>

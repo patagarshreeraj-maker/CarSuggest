@@ -28,6 +28,8 @@ import { ComparisonView } from './components/ComparisonView';
 import { OwnershipStudio } from './components/OwnershipStudio';
 import { AiChatDrawer } from './components/AiChatDrawer';
 import { EmiModal } from './components/EmiModal';
+import { OnRoadPriceModal } from './components/OnRoadPriceModal';
+import { EvBreakEvenModal } from './components/EvBreakEvenModal';
 
 export default function App() {
   // Auth state
@@ -51,6 +53,8 @@ export default function App() {
   const [isProcessingAi, setIsProcessingAi] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isEmiModalOpen, setIsEmiModalOpen] = useState(false);
+  const [isOnRoadModalOpen, setIsOnRoadModalOpen] = useState(false);
+  const [isEvBreakEvenModalOpen, setIsEvBreakEvenModalOpen] = useState(false);
   const [chatInitialPrompt, setChatInitialPrompt] = useState('');
   const [selectedCarForDetails, setSelectedCarForDetails] = useState<Car | null>(null);
 
@@ -445,6 +449,8 @@ export default function App() {
         hasRecommendations={scoredCars.length > 0}
         onOpenAuthModal={openAuthModal}
         onOpenEmiCalculator={() => setIsEmiModalOpen(true)}
+        onOpenOnRoadPrice={() => setIsOnRoadModalOpen(true)}
+        onOpenEvBreakEven={() => setIsEvBreakEvenModalOpen(true)}
       />
 
       {/* Main View Area */}
@@ -633,6 +639,18 @@ export default function App() {
       <EmiModal
         isOpen={isEmiModalOpen}
         onClose={() => setIsEmiModalOpen(false)}
+      />
+
+      {/* State-Wise On-Road Price Estimator Modal */}
+      <OnRoadPriceModal
+        isOpen={isOnRoadModalOpen}
+        onClose={() => setIsOnRoadModalOpen(false)}
+      />
+
+      {/* EV vs Petrol Break-Even Simulator Modal */}
+      <EvBreakEvenModal
+        isOpen={isEvBreakEvenModalOpen}
+        onClose={() => setIsEvBreakEvenModalOpen(false)}
       />
 
       {/* Authentication Modal */}

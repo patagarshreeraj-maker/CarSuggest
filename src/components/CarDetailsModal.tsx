@@ -24,6 +24,7 @@ import { Car } from '../types';
 import { calculateOwnershipCost } from '../lib/ownershipCalculator';
 import { CarImage } from './CarImage';
 import { EmiCalculatorWidget } from './EmiCalculatorWidget';
+import { OnRoadPriceWidget } from './OnRoadPriceWidget';
 
 interface CarDetailsModalProps {
   car: Car | null;
@@ -46,7 +47,7 @@ export const CarDetailsModal: React.FC<CarDetailsModalProps> = ({
   onAskAi,
   onOpenFullOwnership
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'specs' | 'safety' | 'variants' | 'emi' | 'ownership'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'specs' | 'safety' | 'variants' | 'onroad' | 'emi' | 'ownership'>('overview');
   const [activeImageIdx, setActiveImageIdx] = useState(0);
 
   if (!car) return null;
@@ -256,6 +257,7 @@ export const CarDetailsModal: React.FC<CarDetailsModalProps> = ({
               { id: 'specs', label: 'Engine & Dimensions' },
               { id: 'safety', label: 'Safety & ADAS Features' },
               { id: 'variants', label: `Variants (${car.variants.length})` },
+              { id: 'onroad', label: 'On-Road Price' },
               { id: 'emi', label: 'EMI Calculator' },
               { id: 'ownership', label: '5-Year Cost' }
             ].map((tab) => (
@@ -461,6 +463,17 @@ export const CarDetailsModal: React.FC<CarDetailsModalProps> = ({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* TAB 4.5: On-Road Price */}
+          {activeTab === 'onroad' && (
+            <div className="space-y-4">
+              <OnRoadPriceWidget
+                initialPriceLakh={(car.priceMinLakh + car.priceMaxLakh) / 2}
+                initialFuelType={car.fuelTypes[0]}
+                carName={`${car.brand} ${car.name}`}
+              />
             </div>
           )}
 
