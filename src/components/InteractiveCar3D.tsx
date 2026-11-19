@@ -22,10 +22,8 @@ export const InteractiveCar3D: React.FC<InteractiveCar3DProps> = ({
     if (!canvas) return;
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const isDarkTheme = document.documentElement.dataset.theme === 'dark' ||
-      window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const blendMode = isDarkTheme ? THREE.AdditiveBlending : THREE.NormalBlending;
 
+    // ── Renderer ──────────────────────────────────────────────
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
@@ -35,431 +33,573 @@ export const InteractiveCar3D: React.FC<InteractiveCar3DProps> = ({
         powerPreference: 'high-performance'
       });
       renderer.setClearColor(0x000000, 0);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.1;
     } catch {
       return;
     }
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 200);
+    scene.fog = new THREE.FogExp2(0x060a14, 0.032);
 
-    // Ambient & Directional Lighting
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x334466, 0.95);
-    scene.add(hemiLight);
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 300);
+    camera.position.set(2, 2.4, 10);
+    camera.lookAt(0, 0.9, 0);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.3);
-    dirLight.position.set(4, 8, 6);
-    scene.add(dirLight);
+    // ── Lighting ──────────────────────────────────────────────
+    const ambientLight = new THREE.AmbientLight(0x1a1f35, 0.6);
+    scene.add(ambientLight);
 
-    const pointLightL2 = new THREE.PointLight(0xff5a1f, 1.6, 40);
-    pointLightL2.position.set(-5, 2, -4);
-    scene.add(pointLightL2);
+    // Key spotlight – warm orange on car body
+    const keySpot = new THREE.SpotLight(0xff7a40, 3.5, 60, Math.PI / 5, 0.4, 1.2);
+    keySpot.position.set(5, 10, 8);
+    keySpot.castShadow = true;
+    keySpot.shadow.mapSize.set(1024, 1024);
+    scene.add(keySpot);
+    scene.add(keySpot.target);
 
-    const pointLightL3 = new THREE.PointLight(0x3a7bff, 1.3, 40);
-    pointLightL3.position.set(5, 2, 5);
-    scene.add(pointLightL3);
+    // Fill light – cool blue rim
+    const fillSpot = new THREE.SpotLight(0x3a7bff, 2.2, 55, Math.PI / 6, 0.5, 1.4);
+    fillSpot.position.set(-6, 7, -5);
+    scene.add(fillSpot);
 
-    // Car Body Assembly
+    // Under-car neon point light (animated)
+    const neonUnder = new THREE.PointLight(0xff5a1f, 2.0, 8);
+    neonUnder.position.set(0, 0.1, 0);
+    scene.add(neonUnder);
+
+    // Top rim backlight
+    const rimLight = new THREE.DirectionalLight(0xb0c8ff, 0.8);
+    rimLight.position.set(0, 12, -10);
+    scene.add(rimLight);
+
+    // ── Floor / Showroom ──────────────────────────────────────
+    const floorGeom = new THREE.PlaneGeometry(80, 80, 1, 1);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x08111e,
+      metalness: 0.9,
+      roughness: 0.12,
+    });
+    const floor = new THREE.Mesh(floorGeom, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Grid lines on floor (subtle)
+    const gridHelper = new THREE.GridHelper(80, 60, 0x1e3045, 0x0d1a28);
+    (gridHelper.material as THREE.LineBasicMaterial).transparent = true;
+    (gridHelper.material as THREE.LineBasicMaterial).opacity = 0.55;
+    scene.add(gridHelper);
+
+    // ── Car Body ──────────────────────────────────────────────
     const carGroup = new THREE.Group();
     scene.add(carGroup);
 
-    const bodyMaterial = new THREE.MeshPhysicalMaterial({
+    const bodyMat = new THREE.MeshPhysicalMaterial({
       color: 0xff5a1f,
-      metalness: 0.55,
-      roughness: 0.28,
+      metalness: 0.65,
+      roughness: 0.22,
       clearcoat: 1.0,
-      clearcoatRoughness: 0.1
+      clearcoatRoughness: 0.08,
+      reflectivity: 1,
     });
 
-    const createExtrusion = (pts: [number, number][], depth: number, bevel: number) => {
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0x060e1a,
+      metalness: 0.95,
+      roughness: 0.03,
+      transparent: true,
+      opacity: 0.88,
+      transmission: 0.1,
+    });
+
+    const createExtruded = (pts: [number, number][], depth: number, bevel: number) => {
       const shape = new THREE.Shape();
-      pts.forEach((p, idx) => (idx ? shape.lineTo(p[0], p[1]) : shape.moveTo(p[0], p[1])));
+      pts.forEach(([x, y], i) => (i ? shape.lineTo(x, y) : shape.moveTo(x, y)));
       const geom = new THREE.ExtrudeGeometry(shape, {
-        depth,
-        bevelEnabled: true,
-        bevelSize: bevel,
-        bevelThickness: bevel,
-        bevelSegments: 3
+        depth, bevelEnabled: true, bevelSize: bevel, bevelThickness: bevel, bevelSegments: 4
       });
       geom.translate(0, 0, -depth / 2);
       return geom;
     };
 
-    // Lower chassis & aerodynamic silhouette
-    const lowerBodyGeom = createExtrusion(
-      [[-2.1, 0.3], [2.1, 0.3], [2.15, 0.7], [1.7, 0.95], [0.6, 1.05], [-1.9, 1.05], [-2.15, 0.85]],
-      1.7,
-      0.08
+    // Lower chassis
+    const lowerGeom = createExtruded(
+      [[-2.15, 0.28], [2.15, 0.28], [2.2, 0.72], [1.75, 1.0], [0.6, 1.08], [-1.9, 1.08], [-2.2, 0.88]],
+      1.75, 0.09
     );
-    carGroup.add(new THREE.Mesh(lowerBodyGeom, bodyMaterial));
+    const lowerBody = new THREE.Mesh(lowerGeom, bodyMat);
+    lowerBody.castShadow = true;
+    carGroup.add(lowerBody);
 
-    // Tinted cockpit glass
-    const cabinGeom = createExtrusion(
-      [[-1.6, 1.0], [-0.95, 1.62], [0.5, 1.62], [1.2, 1.0]],
-      1.5,
-      0.03
+    // Cabin/roof
+    const cabinGeom = createExtruded(
+      [[-1.62, 1.0], [-0.98, 1.65], [0.52, 1.65], [1.22, 1.0]],
+      1.55, 0.04
     );
-    const glassMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0x0a1626,
-      metalness: 0.9,
-      roughness: 0.05,
-      transparent: true,
-      opacity: 0.92
-    });
-    carGroup.add(new THREE.Mesh(cabinGeom, glassMaterial));
+    const cabinMesh = new THREE.Mesh(cabinGeom, glassMat);
+    carGroup.add(cabinMesh);
 
-    // Aerodynamic roof panel
-    const roofGeom = new THREE.BoxGeometry(1.45, 0.07, 1.56);
-    const roofMesh = new THREE.Mesh(roofGeom, bodyMaterial);
-    roofMesh.position.set(-0.22, 1.64, 0);
+    // Roof reinforcement strip
+    const roofGeom = new THREE.BoxGeometry(1.5, 0.08, 1.6);
+    const roofMesh = new THREE.Mesh(roofGeom, bodyMat);
+    roofMesh.position.set(-0.2, 1.67, 0);
     carGroup.add(roofMesh);
 
-    // Wheels: Tires and sport rims
-    const tireMat = new THREE.MeshStandardMaterial({ color: 0x0b0b0e, roughness: 0.8 });
-    const rimMat = new THREE.MeshStandardMaterial({ color: 0xd8dde6, metalness: 1, roughness: 0.2 });
+    // Hood scoop detail
+    const scoopGeom = new THREE.BoxGeometry(0.6, 0.06, 0.3);
+    const scoopMesh = new THREE.Mesh(scoopGeom, bodyMat);
+    scoopMesh.position.set(1.6, 1.0, 0);
+    carGroup.add(scoopMesh);
+
+    // Side skirts
+    [-0.9, 0.9].forEach(z => {
+      const skirtGeom = new THREE.BoxGeometry(3.5, 0.1, 0.12);
+      const skirt = new THREE.Mesh(skirtGeom, bodyMat);
+      skirt.position.set(0, 0.5, z);
+      carGroup.add(skirt);
+    });
+
+    // ── Wheels ────────────────────────────────────────────────
+    const tireMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0d, roughness: 0.9, metalness: 0.0 });
+    const rimMat = new THREE.MeshStandardMaterial({ color: 0xd0d8e8, metalness: 1.0, roughness: 0.15 });
+    const spokesMat = new THREE.MeshStandardMaterial({ color: 0xb8c4d4, metalness: 0.9, roughness: 0.2 });
     const wheels: THREE.Group[] = [];
 
-    const wheelPositions: [number, number][] = [
-      [1.35, 0.95],
-      [1.35, -0.95],
-      [-1.35, 0.95],
-      [-1.35, -0.95]
+    const wheelPositions: [number, number, number][] = [
+      [1.38, 0.44, 0.96],
+      [1.38, 0.44, -0.96],
+      [-1.38, 0.44, 0.96],
+      [-1.38, 0.44, -0.96],
     ];
 
-    wheelPositions.forEach(([wx, wz]) => {
-      const wheelGroup = new THREE.Group();
-      const tireGeom = new THREE.CylinderGeometry(0.44, 0.44, 0.32, 32);
-      const tireMesh = new THREE.Mesh(tireGeom, tireMat);
-      tireMesh.rotation.x = Math.PI / 2;
+    wheelPositions.forEach(([wx, wy, wz]) => {
+      const wg = new THREE.Group();
 
-      const rimGeom = new THREE.CylinderGeometry(0.28, 0.28, 0.34, 5);
+      // Tire
+      const tireGeom = new THREE.CylinderGeometry(0.44, 0.44, 0.33, 48);
+      const tire = new THREE.Mesh(tireGeom, tireMat);
+      tire.rotation.x = Math.PI / 2;
+      tire.castShadow = true;
+      wg.add(tire);
+
+      // Rim disc
+      const rimGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.355, 5);
       const rimMesh = new THREE.Mesh(rimGeom, rimMat);
       rimMesh.rotation.x = Math.PI / 2;
+      wg.add(rimMesh);
 
-      wheelGroup.add(tireMesh, rimMesh);
-      wheelGroup.position.set(wx, 0.44, wz);
-      carGroup.add(wheelGroup);
-      wheels.push(wheelGroup);
+      // Spokes
+      for (let s = 0; s < 5; s++) {
+        const angle = (s / 5) * Math.PI * 2;
+        const spokeGeom = new THREE.BoxGeometry(0.055, 0.22, 0.36);
+        const spoke = new THREE.Mesh(spokeGeom, spokesMat);
+        spoke.rotation.z = angle;
+        spoke.rotation.x = Math.PI / 2;
+        wg.add(spoke);
+      }
+
+      wg.position.set(wx, wy, wz);
+      carGroup.add(wg);
+      wheels.push(wg);
     });
 
-    // Front LED Headlights with projected light cones
-    const basicMat = (col: number) => new THREE.MeshBasicMaterial({ color: col });
-    [0.6, -0.6].forEach((zPos) => {
-      const headGeom = new THREE.BoxGeometry(0.1, 0.14, 0.45);
-      const headMesh = new THREE.Mesh(headGeom, basicMat(0xffffff));
-      headMesh.position.set(2.16, 0.78, zPos);
-      carGroup.add(headMesh);
+    // ── Headlights ────────────────────────────────────────────
+    const basicMat = (col: number, opacity = 1) => new THREE.MeshBasicMaterial({ color: col, transparent: opacity < 1, opacity });
 
-      const beamGeom = new THREE.ConeGeometry(1.3, 7, 24, 1, true);
+    [0.62, -0.62].forEach(zPos => {
+      // Headlight housing
+      const hGeom = new THREE.BoxGeometry(0.11, 0.15, 0.48);
+      carGroup.add(Object.assign(new THREE.Mesh(hGeom, basicMat(0xffffff)), { position: new THREE.Vector3(2.17, 0.79, zPos) }));
+
+      // DRL strip
+      const drlGeom = new THREE.BoxGeometry(0.05, 0.03, 0.44);
+      const drl = new THREE.Mesh(drlGeom, basicMat(0xddeeff));
+      drl.position.set(2.19, 0.84, zPos);
+      carGroup.add(drl);
+
+      // Light cone
+      const beamGeom = new THREE.ConeGeometry(1.5, 8, 24, 1, true);
       const beamMat = new THREE.MeshBasicMaterial({
-        color: 0xfff2d0,
-        transparent: true,
-        opacity: 0.1,
-        blending: blendMode,
-        depthWrite: false,
-        side: THREE.DoubleSide
+        color: 0xfff4d0, transparent: true, opacity: 0.07,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
       });
-      const beamMesh = new THREE.Mesh(beamGeom, beamMat);
-      beamMesh.rotation.z = Math.PI / 2;
-      beamMesh.position.set(5.7, 0.7, zPos);
-      carGroup.add(beamMesh);
+      const beam = new THREE.Mesh(beamGeom, beamMat);
+      beam.rotation.z = Math.PI / 2;
+      beam.position.set(6.5, 0.72, zPos);
+      carGroup.add(beam);
     });
 
-    // Rear continuous neon taillight
-    const tailGeom = new THREE.BoxGeometry(0.06, 0.1, 1.4);
-    const tailMesh = new THREE.Mesh(tailGeom, basicMat(0xff1133));
-    tailMesh.position.set(-2.18, 0.8, 0);
-    carGroup.add(tailMesh);
-
-    // Neon ground circle ring
-    const groundRingGeom = new THREE.RingGeometry(2.7, 2.82, 64);
-    const groundRingMat = new THREE.MeshBasicMaterial({
-      color: 0xff5a1f,
-      transparent: true,
-      opacity: 0.7,
-      side: THREE.DoubleSide,
-      blending: blendMode
+    // Tail lights
+    const tailMat = basicMat(0xff1133);
+    [0.72, -0.72].forEach(zPos => {
+      const tGeom = new THREE.BoxGeometry(0.07, 0.11, 0.42);
+      const tail = new THREE.Mesh(tGeom, tailMat);
+      tail.position.set(-2.2, 0.82, zPos);
+      carGroup.add(tail);
     });
-    const groundRing = new THREE.Mesh(groundRingGeom, groundRingMat);
+
+    // Connecting center tail strip
+    const stripGeom = new THREE.BoxGeometry(0.06, 0.07, 1.6);
+    carGroup.add(Object.assign(new THREE.Mesh(stripGeom, tailMat), { position: new THREE.Vector3(-2.2, 0.82, 0) }));
+
+    // ── Neon ground ring ──────────────────────────────────────
+    const ringGeom = new THREE.RingGeometry(2.75, 2.88, 128);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xff5a1f, transparent: true, opacity: 0.75,
+      side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+    });
+    const groundRing = new THREE.Mesh(ringGeom, ringMat);
     groundRing.rotation.x = -Math.PI / 2;
-    groundRing.position.y = 0.02;
+    groundRing.position.y = 0.015;
     carGroup.add(groundRing);
 
-    // Holographic vehicle scanning plane
-    const scanGeom = new THREE.PlaneGeometry(2.4, 2.2);
-    const scanMat = new THREE.MeshBasicMaterial({
-      color: 0x3aa0ff,
-      transparent: true,
-      opacity: 0.2,
-      side: THREE.DoubleSide,
-      blending: blendMode,
-      depthWrite: false
-    });
-    const scanMesh = new THREE.Mesh(scanGeom, scanMat);
-    scanMesh.rotation.y = Math.PI / 2;
-    scanMesh.position.y = 1;
-    carGroup.add(scanMesh);
-
-    // Concentric orbital rings
-    const orbitalMeshes = [4.2, 5.4].map((radius, i) => {
-      const orbGeom = new THREE.TorusGeometry(radius, 0.012, 8, 128);
+    // ── Orbital rings ─────────────────────────────────────────
+    const orbitalMeshes = [
+      { radius: 4.4, color: 0xff5a1f, speed: 1.8, tiltX: 0.5, tiltZ: 0.2 },
+      { radius: 5.6, color: 0x3a7bff, speed: -1.3, tiltX: -0.3, tiltZ: 0.4 },
+      { radius: 6.5, color: 0x14c8a0, speed: 1.0, tiltX: 0.6, tiltZ: -0.3 },
+    ].map(({ radius, color, speed, tiltX, tiltZ }) => {
+      const orbGeom = new THREE.TorusGeometry(radius, 0.015, 8, 160);
       const orbMat = new THREE.MeshBasicMaterial({
-        color: i ? 0x3a7bff : 0xff5a1f,
-        transparent: true,
-        opacity: 0.55
+        color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending
       });
-      const orbMesh = new THREE.Mesh(orbGeom, orbMat);
-      orbMesh.position.y = 1;
-      carGroup.add(orbMesh);
-      return orbMesh;
+      const orb = new THREE.Mesh(orbGeom, orbMat);
+      orb.position.y = 1.0;
+      scene.add(orb);
+      return { mesh: orb, speed, tiltX, tiltZ };
     });
 
-    // Telemetry particle nodes
-    const nodesGroup = new THREE.Group();
-    nodesGroup.position.y = 1.2;
-    carGroup.add(nodesGroup);
-    for (let i = 0; i < 28; i++) {
-      const angle = (i / 28) * Math.PI * 2;
-      const nodeGeom = new THREE.OctahedronGeometry(0.07 + Math.random() * 0.08);
-      const nodeMesh = new THREE.Mesh(nodeGeom, basicMat(i % 2 ? 0xff5a1f : 0x3aa0ff));
-      nodeMesh.position.set(Math.cos(angle) * 5, Math.sin(angle * 3) * 0.8, Math.sin(angle) * 5);
-      nodesGroup.add(nodeMesh);
+    // ── Particle field ────────────────────────────────────────
+    const PARTICLE_COUNT = 320;
+    const pPositions = new Float32Array(PARTICLE_COUNT * 3);
+    const pSpeeds = new Float32Array(PARTICLE_COUNT);
+    const pRadii = new Float32Array(PARTICLE_COUNT);
+    const pAngles = new Float32Array(PARTICLE_COUNT);
+    const pHeights = new Float32Array(PARTICLE_COUNT);
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      pAngles[i] = Math.random() * Math.PI * 2;
+      pRadii[i] = 3.5 + Math.random() * 9;
+      pHeights[i] = Math.random() * 5;
+      pSpeeds[i] = 0.2 + Math.random() * 0.5;
+      pPositions[i * 3] = Math.cos(pAngles[i]) * pRadii[i];
+      pPositions[i * 3 + 1] = pHeights[i];
+      pPositions[i * 3 + 2] = Math.sin(pAngles[i]) * pRadii[i];
     }
 
-    // Perspective floor grid
-    const roadGrid = new THREE.GridHelper(120, 60, 0xffffff, 0xffffff);
-    (roadGrid.material as THREE.Material).transparent = true;
-    (roadGrid.material as THREE.Material).opacity = 0.18;
-    scene.add(roadGrid);
+    const pGeom = new THREE.BufferGeometry();
+    pGeom.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+    const pMat = new THREE.PointsMaterial({
+      color: 0xff5a1f,
+      size: 0.055,
+      transparent: true,
+      opacity: 0.7,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true,
+    });
+    const particles = new THREE.Points(pGeom, pMat);
+    scene.add(particles);
 
-    // Highway dashes
-    const roadDashes: THREE.Mesh[] = [];
-    const dashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
-    for (let i = 0; i < 30; i++) {
-      [-4, 4].forEach((zVal) => {
-        const dashGeom = new THREE.BoxGeometry(1.6, 0.02, 0.12);
-        const dashMesh = new THREE.Mesh(dashGeom, dashMat);
-        dashMesh.position.set(i * 4 - 60, 0.01, zVal);
-        scene.add(dashMesh);
-        roadDashes.push(dashMesh);
-      });
-    }
-
-    // Speed warp streak particles
-    const STREAK_COUNT = 170;
-    const streakPositions = new Float32Array(STREAK_COUNT * 6);
-    const streakLengths: number[] = [];
+    // ── Speed streaks ─────────────────────────────────────────
+    const STREAK_COUNT = 140;
+    const streakPos = new Float32Array(STREAK_COUNT * 6);
+    const streakLens: number[] = [];
     for (let i = 0; i < STREAK_COUNT; i++) {
       const px = Math.random() * 80 - 40;
-      const py = Math.random() * 7 + 0.1;
-      const pz = (Math.random() < 0.5 ? -1 : 1) * (2.8 + Math.random() * 12);
-      const len = 1 + Math.random() * 4;
-      streakPositions.set([px, py, pz, px + len, py, pz], i * 6);
-      streakLengths.push(len);
+      const py = Math.random() * 6 + 0.08;
+      const pz = (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 13);
+      const len = 1.2 + Math.random() * 4.5;
+      streakPos.set([px, py, pz, px + len, py, pz], i * 6);
+      streakLens.push(len);
     }
     const streakGeom = new THREE.BufferGeometry();
-    streakGeom.setAttribute('position', new THREE.BufferAttribute(streakPositions, 3));
+    streakGeom.setAttribute('position', new THREE.BufferAttribute(streakPos, 3));
     const streakMat = new THREE.LineBasicMaterial({
-      color: 0xff9a5f,
-      transparent: true,
-      opacity: 0.55,
-      blending: blendMode
+      color: 0xff9a5f, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending
     });
-    const streakSegments = new THREE.LineSegments(streakGeom, streakMat);
-    scene.add(streakSegments);
+    const streaks = new THREE.LineSegments(streakGeom, streakMat);
+    scene.add(streaks);
 
-    // Camera perspective keyframes corresponding to each section
+    // ── Road dashes ───────────────────────────────────────────
+    const dashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+    const roadDashes: THREE.Mesh[] = [];
+    for (let i = 0; i < 36; i++) {
+      [-3.8, 3.8].forEach(zv => {
+        const dg = new THREE.BoxGeometry(1.8, 0.015, 0.14);
+        const dm = new THREE.Mesh(dg, dashMat);
+        dm.position.set(i * 4.5 - 80, 0.005, zv);
+        scene.add(dm);
+        roadDashes.push(dm);
+      });
+    }
+
+    // ── Holographic scan plane ────────────────────────────────
+    const scanGeom = new THREE.PlaneGeometry(2.6, 2.4);
+    const scanMat = new THREE.MeshBasicMaterial({
+      color: 0x44aaff, transparent: true, opacity: 0.18,
+      side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const scanPlane = new THREE.Mesh(scanGeom, scanMat);
+    scanPlane.rotation.y = Math.PI / 2;
+    scanPlane.position.y = 1.0;
+    carGroup.add(scanPlane);
+
+    // ── Camera keyframes per section ──────────────────────────
     const KEYFRAMES = [
-      { r: 0.55, x: 1.8, cy: 2.3, cz: 9.5, ly: 0.9, color: 0xff5a1f }, // Section 0: #hero
-      { r: -0.55, x: -3.1, cy: 2.6, cz: 10.0, ly: 0.9, color: 0x2f6bff }, // Section 1: #fx
-      { r: Math.PI + 0.5, x: 3.1, cy: 2.0, cz: 9.0, ly: 0.9, color: 0x14c8a0 }, // Section 2: #try
-      { r: Math.PI * 2 - 0.35, x: 0.0, cy: 1.5, cz: 8.5, ly: 2.9, color: 0xffb703 } // Section 3: #go
+      { r: 0.5,          x: 1.9,  cy: 2.4, cz: 9.6,  ly: 0.9, color: 0xff5a1f },
+      { r: -0.5,         x: -3.2, cy: 2.7, cz: 10.2, ly: 0.9, color: 0x2f6bff },
+      { r: Math.PI + 0.4,x: 3.0,  cy: 2.0, cz: 9.0,  ly: 0.9, color: 0x14c8a0 },
+      { r: Math.PI * 2 - 0.3, x: 0.0, cy: 1.5, cz: 8.4, ly: 2.8, color: 0xffb703 }
     ];
 
-    const sectionColors = KEYFRAMES.map((k) => new THREE.Color(k.color));
+    const sectionColors = KEYFRAMES.map(k => new THREE.Color(k.color));
     const targetColor = new THREE.Color();
-    const currentTransform = {
-      r: KEYFRAMES[0].r,
-      x: KEYFRAMES[0].x,
-      cy: KEYFRAMES[0].cy,
-      cz: KEYFRAMES[0].cz,
-      ly: 0.9
-    };
+    const currentTransform = { r: KEYFRAMES[0].r, x: KEYFRAMES[0].x, cy: KEYFRAMES[0].cy, cz: KEYFRAMES[0].cz, ly: 0.9 };
 
-    const clamp = (val: number, min: number, max: number) => Math.min(Math.max(val, min), max);
+    const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
     const smoothStep = (t: number) => t * t * (3 - 2 * t);
 
-    // Resize handling
+    // Section anchor caching
+    const SECTION_SELECTORS = ['#hero', '#fx', '#try', '#go'];
+    let sectionTops: number[] = [];
+    const measureSections = () => {
+      sectionTops = SECTION_SELECTORS.map(sel => {
+        const el = document.querySelector<HTMLElement>(sel);
+        return el ? el.offsetTop : 0;
+      });
+    };
+    measureSections();
+    let lastDocHeight = document.body.scrollHeight;
+
+    // Resize
     const handleResize = () => {
       if (!canvas) return;
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
-      renderer.setSize(width, height);
-      camera.aspect = width / height;
+      const W = window.innerWidth, H = window.innerHeight;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      renderer.setSize(W, H);
+      camera.aspect = W / H;
       camera.updateProjectionMatrix();
+      measureSections();
+      lastDocHeight = document.body.scrollHeight;
     };
     window.addEventListener('resize', handleResize);
     handleResize();
 
-    // Mouse parallax
-    let targetMouseX = 0;
-    let targetMouseY = 0;
-    let mouseX = 0;
-    let mouseY = 0;
+    // ── Mouse / Touch interaction ──────────────────────────────
+    let targetMouseX = 0, targetMouseY = 0;
+    let mouseX = 0, mouseY = 0;
+    // drag-to-rotate
+    let isDragging = false;
+    let dragStartX = 0, dragCurrentX = 0;
+    let extraRotation = 0, dragDelta = 0;
 
     const handlePointerMove = (e: PointerEvent) => {
       targetMouseX = (e.clientX / window.innerWidth) * 2 - 1;
       targetMouseY = (e.clientY / window.innerHeight) * 2 - 1;
+      if (isDragging) {
+        dragDelta = (e.clientX - dragStartX) * 0.008;
+        dragCurrentX = e.clientX;
+      }
     };
-    window.addEventListener('pointermove', handlePointerMove);
+    const handlePointerDown = (e: PointerEvent) => {
+      isDragging = true;
+      dragStartX = e.clientX;
+      dragDelta = 0;
+    };
+    const handlePointerUp = () => {
+      if (isDragging) {
+        // commit drag rotation
+        extraRotation += dragDelta;
+        dragDelta = 0;
+      }
+      isDragging = false;
+    };
 
-    // Animation loop variables
-    let animationFrameId: number;
+    // only the canvas itself captures drag so it doesn't interfere with page scroll
+    canvas.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+
+    // ── Animation loop ────────────────────────────────────────
+    let animId: number;
     let prevTime = performance.now();
     const startTime = prevTime;
     let lastScrollY = window.scrollY;
     let scrollVelocity = 0;
     let gridOffset = 0;
     let frameCount = 0;
+    const FRAME_MS = 1000 / 60;
 
-    const renderLoop = (currentTime: number) => {
-      animationFrameId = requestAnimationFrame(renderLoop);
+    const renderLoop = (now: number) => {
+      animId = requestAnimationFrame(renderLoop);
 
-      const deltaTime = Math.min((currentTime - prevTime) / 1000, 0.05) || 0.016;
-      prevTime = currentTime;
+      if (document.hidden) { prevTime = now; lastScrollY = window.scrollY; return; }
 
+      const elapsed = now - prevTime;
+      if (elapsed < FRAME_MS * 0.8) return;
+      const dt = Math.min(elapsed / 1000, 0.05) || 0.016;
+      prevTime = now;
+      frameCount++;
+
+      // intro ease (car zooms in from far)
       const introEase = prefersReducedMotion
         ? 1
-        : 1 - Math.pow(1 - Math.min((currentTime - startTime) / 2800, 1), 3);
+        : 1 - Math.pow(1 - Math.min((now - startTime) / 2600, 1), 3);
 
-      scrollVelocity += (Math.abs(window.scrollY - lastScrollY) / deltaTime / 1000 - scrollVelocity) * 0.1;
+      // scroll velocity for speed boost
+      const rawDY = Math.abs(window.scrollY - lastScrollY);
+      scrollVelocity += (rawDY / dt / 900 - scrollVelocity) * 0.08;
       lastScrollY = window.scrollY;
-      boostRef.current *= Math.exp(-deltaTime * 1.5);
+      boostRef.current *= Math.exp(-dt * 1.6);
 
-      const currentSpeed = (prefersReducedMotion ? 0.25 : 1) *
-        (1 + (1 - introEase) * 7 + Math.min(scrollVelocity, 3) * 1.6 + boostRef.current);
+      const currentSpeed = (prefersReducedMotion ? 0.2 : 1.0) *
+        (1 + (1 - introEase) * 8 + Math.min(scrollVelocity, 4) * 1.8 + boostRef.current);
 
-      // Scroll position tracking relative to sections
-      const sectionElements = ['#hero', '#fx', '#try', '#go'].map((sel) =>
-        document.querySelector<HTMLElement>(sel)
-      );
-
-      const scrollCenter = window.scrollY + window.innerHeight * 0.55;
-      let activeIndex = 0;
-      sectionElements.forEach((el, idx) => {
-        if (el && el.offsetTop <= scrollCenter) {
-          activeIndex = idx;
-        }
-      });
-
-      const nextIndex = Math.min(activeIndex + 1, KEYFRAMES.length - 1);
-      const currEl = sectionElements[activeIndex];
-      const nextEl = sectionElements[nextIndex];
-
-      let unitProgress = 0;
-      if (nextIndex > activeIndex && currEl && nextEl) {
-        unitProgress = clamp((scrollCenter - currEl.offsetTop) / (nextEl.offsetTop - currEl.offsetTop), 0, 1);
+      // Re-measure sections occasionally
+      if ((frameCount & 63) === 0 && document.body.scrollHeight !== lastDocHeight) {
+        lastDocHeight = document.body.scrollHeight;
+        measureSections();
       }
-      const easeProgress = smoothStep(clamp((unitProgress - 0.3) / 0.6, 0, 1));
 
-      const kfA = KEYFRAMES[activeIndex];
-      const kfB = KEYFRAMES[nextIndex];
-      const interpolate = (prop: 'r' | 'x' | 'cy' | 'cz' | 'ly') =>
-        kfA[prop] + (kfB[prop] - kfA[prop]) * easeProgress;
+      // Active section / interpolation
+      const scrollCenter = window.scrollY + window.innerHeight * 0.5;
+      let activeIdx = 0;
+      sectionTops.forEach((top, i) => { if (top <= scrollCenter) activeIdx = i; });
+      const nextIdx = Math.min(activeIdx + 1, KEYFRAMES.length - 1);
+
+      let unitProg = 0;
+      if (nextIdx > activeIdx && sectionTops[nextIdx] > sectionTops[activeIdx]) {
+        unitProg = clamp(
+          (scrollCenter - sectionTops[activeIdx]) / (sectionTops[nextIdx] - sectionTops[activeIdx]),
+          0, 1
+        );
+      }
+      const easeProg = smoothStep(clamp((unitProg - 0.25) / 0.6, 0, 1));
+      const kA = KEYFRAMES[activeIdx], kB = KEYFRAMES[nextIdx];
+      const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+      // Smooth camera lerp
+      const lf = 1 - Math.exp(-dt * 3.8);
+      currentTransform.r  += (lerp(kA.r,  kB.r,  easeProg) - currentTransform.r)  * lf;
+      currentTransform.x  += (lerp(kA.x,  kB.x,  easeProg) - currentTransform.x)  * lf;
+      currentTransform.cy += (lerp(kA.cy, kB.cy, easeProg) - currentTransform.cy) * lf;
+      currentTransform.cz += (lerp(kA.cz, kB.cz, easeProg) - currentTransform.cz) * lf;
+      currentTransform.ly += (lerp(kA.ly, kB.ly, easeProg) - currentTransform.ly) * lf;
+
+      // Mouse parallax smooth
+      mouseX += (targetMouseX - mouseX) * 0.045;
+      mouseY += (targetMouseY - mouseY) * 0.045;
+
+      // Drag delta lerp
+      const totalDrag = extraRotation + (isDragging ? dragDelta : 0);
 
       const isPortrait = window.innerWidth / window.innerHeight < 0.9;
-      const lerpFactor = 1 - Math.exp(-deltaTime * 3.5);
-
-      (['r', 'x', 'cy', 'cz', 'ly'] as const).forEach((prop) => {
-        currentTransform[prop] += (interpolate(prop) - currentTransform[prop]) * lerpFactor;
-      });
-
-      mouseX += (targetMouseX - mouseX) * 0.05;
-      mouseY += (targetMouseY - mouseY) * 0.05;
-
-      carGroup.position.x = (isPortrait ? 0 : currentTransform.x) - (1 - introEase) * 18;
-      carGroup.position.y = Math.sin(currentTime / 260) * 0.012 * Math.min(currentSpeed, 3);
-      carGroup.rotation.y = currentTransform.r * introEase + mouseX * 0.3;
-      carGroup.rotation.z = -mouseX * 0.02;
+      carGroup.position.x = (isPortrait ? 0 : currentTransform.x) - (1 - introEase) * 20;
+      carGroup.position.y = Math.sin(now / 280) * 0.013 * Math.min(currentSpeed, 3);
+      carGroup.rotation.y = currentTransform.r * introEase + mouseX * 0.28 + totalDrag;
+      carGroup.rotation.z = -mouseX * 0.025;
 
       camera.position.set(
-        mouseX * 0.9,
-        currentTransform.cy - mouseY * 0.5,
-        currentTransform.cz + (isPortrait ? 4 : 0)
+        mouseX * 0.85,
+        currentTransform.cy - mouseY * 0.45,
+        currentTransform.cz + (isPortrait ? 4.5 : 0)
       );
-      camera.lookAt(0, currentTransform.ly + (isPortrait ? 1.3 : 0), 0);
+      camera.lookAt(0, currentTransform.ly + (isPortrait ? 1.4 : 0), 0);
 
-      // Color interpolation across keyframes
-      targetColor.copy(sectionColors[activeIndex]).lerp(sectionColors[nextIndex], easeProgress);
-      bodyMaterial.color.lerp(targetColor, lerpFactor);
-      groundRingMat.color.copy(bodyMaterial.color);
-      pointLightL2.color.copy(bodyMaterial.color);
-      streakMat.color.copy(bodyMaterial.color);
-      // Safe grid color update
-      const gridMat = roadGrid.material;
-      if (Array.isArray(gridMat)) {
-        gridMat.forEach((m) => {
-          if ('color' in m && m.color instanceof THREE.Color) {
-            m.color.copy(bodyMaterial.color);
-          }
-        });
-      } else if (gridMat && 'color' in gridMat && (gridMat as THREE.LineBasicMaterial).color instanceof THREE.Color) {
-        (gridMat as THREE.LineBasicMaterial).color.copy(bodyMaterial.color);
+      // Color shift
+      targetColor.copy(sectionColors[activeIdx]).lerp(sectionColors[nextIdx], easeProg);
+      bodyMat.color.lerp(targetColor, lf);
+      ringMat.color.copy(bodyMat.color);
+      neonUnder.color.copy(bodyMat.color);
+      streakMat.color.copy(bodyMat.color);
+      pMat.color.copy(bodyMat.color);
+      keySpot.color.lerp(targetColor, lf * 0.4);
+
+      // Emit accent color
+      if ((frameCount & 31) === 0) {
+        const hex = '#' + bodyMat.color.getHexString();
+        document.documentElement.style.setProperty('--car-acc', hex);
+        onAccentColorChange?.(hex);
       }
 
-      if ((frameCount++ & 7) === 0) {
-        const hexStr = '#' + bodyMaterial.color.getHexString();
-        document.documentElement.style.setProperty('--car-acc', hexStr);
-        if (onAccentColorChange) onAccentColorChange(hexStr);
-      }
+      // World velocity
+      const worldVel = currentSpeed * 9;
 
-      // Wheel rotation and environment motion
-      const worldVelocity = currentSpeed * 9;
-      const wheelSpin = Math.min((worldVelocity * deltaTime) / 0.44, 0.5);
-      wheels.forEach((w) => {
-        w.rotation.z -= wheelSpin;
+      // Wheel spin
+      wheels.forEach(w => { w.rotation.z -= Math.min((worldVel * dt) / 0.44, 0.52); });
+
+      // Road dashes scroll
+      roadDashes.forEach(d => {
+        d.position.x -= worldVel * dt;
+        if (d.position.x < -80) d.position.x += 160;
       });
 
-      roadDashes.forEach((dash) => {
-        dash.position.x -= worldVelocity * deltaTime;
-        if (dash.position.x < -60) dash.position.x += 120;
-      });
+      // Grid scroll
+      gridOffset = (gridOffset + worldVel * dt) % 2;
+      gridHelper.position.x = -gridOffset;
 
-      gridOffset = (gridOffset + worldVelocity * deltaTime) % 2;
-      roadGrid.position.x = -gridOffset;
-
-      // Update streaks
+      // Speed streaks update
       for (let j = 0; j < STREAK_COUNT; j++) {
-        const offset = j * 6;
-        streakPositions[offset] -= worldVelocity * deltaTime * 1.6;
-        if (streakPositions[offset] < -40) streakPositions[offset] = 40;
-        streakPositions[offset + 3] =
-          streakPositions[offset] + streakLengths[j] * (0.6 + currentSpeed * 0.35);
+        const o = j * 6;
+        streakPos[o] -= worldVel * dt * 1.7;
+        if (streakPos[o] < -40) streakPos[o] = 40;
+        streakPos[o + 3] = streakPos[o] + streakLens[j] * (0.6 + currentSpeed * 0.38);
       }
       streakGeom.attributes.position.needsUpdate = true;
 
-      // Holographic scanner movement
-      scanMesh.position.x = Math.sin(currentTime / 800) * 2.2;
-      scanMat.opacity = 0.1 + 0.12 * Math.abs(Math.cos(currentTime / 800));
+      // Particle orbit update
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        pAngles[i] += pSpeeds[i] * dt * 0.3;
+        // subtle float
+        pHeights[i] += Math.sin(now / 1200 + i) * 0.004;
+        pPositions[i * 3]     = Math.cos(pAngles[i]) * pRadii[i];
+        pPositions[i * 3 + 1] = pHeights[i] % 6;
+        pPositions[i * 3 + 2] = Math.sin(pAngles[i]) * pRadii[i];
+      }
+      pGeom.attributes.position.needsUpdate = true;
 
-      // Orbital animations
-      orbitalMeshes[0].rotation.set(Math.PI / 2 + Math.sin(currentTime / 1300) * 0.35, 0, currentTime / 2000);
-      orbitalMeshes[1].rotation.set(Math.PI / 2 + Math.cos(currentTime / 1700) * 0.4, 0, -currentTime / 1500);
-      nodesGroup.rotation.y += deltaTime * 0.35;
-      groundRing.scale.setScalar(1 + 0.04 * Math.sin(currentTime / 250));
+      // Orbital rings animate
+      orbitalMeshes.forEach(({ mesh, speed, tiltX, tiltZ }, i) => {
+        mesh.rotation.x = tiltX + Math.sin(now / 1400 + i) * 0.2;
+        mesh.rotation.z = tiltZ + now / (2000 / speed);
+      });
+
+      // Neon under-glow pulse
+      neonUnder.intensity = 1.6 + Math.sin(now / 220) * 0.7;
+      groundRing.scale.setScalar(1 + 0.045 * Math.sin(now / 260));
+
+      // Scan plane sweep
+      scanPlane.position.x = Math.sin(now / 850) * 2.3;
+      scanMat.opacity = 0.09 + 0.14 * Math.abs(Math.cos(now / 850));
+
+      // Tail light pulse
+      tailMat.color.setRGB(1, 0.05 + 0.08 * Math.sin(now / 180), 0.07);
 
       renderer.render(scene, camera);
     };
 
-    animationFrameId = requestAnimationFrame(renderLoop);
+    animId = requestAnimationFrame(renderLoop);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      canvas.removeEventListener('pointerdown', handlePointerDown);
       renderer.dispose();
     };
   }, [onAccentColorChange]);
 
-  return <canvas ref={canvasRef} className="fixed inset-0 w-full h-full pointer-events-none z-0" aria-hidden="true" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 w-full h-full z-0"
+      style={{ pointerEvents: 'auto', cursor: 'grab' }}
+      aria-hidden="true"
+    />
+  );
 };

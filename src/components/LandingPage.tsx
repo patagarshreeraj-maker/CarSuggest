@@ -18,6 +18,7 @@ import {
   Timer,
   Trophy,
   ChevronLeft,
+  MousePointer2,
 } from 'lucide-react';
 import { Car } from '../types';
 import { InteractiveCar3D } from './InteractiveCar3D';
@@ -237,6 +238,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [boostSpeed, setBoostSpeed] = useState<number>(0);
   const [statsVisible, setStatsVisible] = useState(false);
   const [carouselIdx, setCarouselIdx] = useState(0);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showDragHint, setShowDragHint] = useState(true);
   const glowRef = useRef<HTMLDivElement | null>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -278,6 +281,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     );
     observer.observe(statsRef.current);
     return () => observer.disconnect();
+  }, []);
+
+  // Scroll progress bar + drag hint
+  useEffect(() => {
+    const onScroll = () => {
+      const scrolled = window.scrollY;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(maxScroll > 0 ? (scrolled / maxScroll) * 100 : 0);
+      if (scrolled > 100) setShowDragHint(false);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   const getSegmentName = (val: number) => {
@@ -332,7 +347,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* Scoped Styles */}
       <style>{`
         .cs-font-display { font-family: 'Unbounded', sans-serif; }
-        @keyframes cs-dash-roll { from { left: -30px; } to { left: 70px; } }
+        @keyframes cs-dash-roll { from { transform: translateX(-30px); } to { transform: translateX(70px); } }
         .cs-dash::after {
           content: "";
           position: absolute;
@@ -340,6 +355,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           width: 32px;
           background: #ff5a1f;
           animation: cs-dash-roll 1.2s linear infinite;
+          will-change: transform;
         }
         @keyframes cs-marquee { to { transform: translateX(-50%); } }
         .cs-marquee-inner {
@@ -371,13 +387,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         @keyframes spin-slow { to { transform: rotate(360deg); } }
         .cs-spin { animation: spin-slow 12s linear infinite; }
         @keyframes shimmer {
-          0% { background-position: -400px 0; }
-          100% { background-position: 400px 0; }
+          0% { transform: translateX(-120%); }
+          100% { transform: translateX(320%); }
         }
         .cs-shimmer {
-          background: linear-gradient(90deg, transparent, rgba(255,90,31,0.12), transparent);
-          background-size: 400px 100%;
-          animation: shimmer 2.5s linear infinite;
+          overflow: hidden;
+        }
+        .cs-shimmer::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 0;
+          width: 40%;
+          background: linear-gradient(90deg, transparent, rgba(255,90,31,0.35), transparent);
+          animation: shimmer 2.6s linear infinite;
+          will-change: transform;
         }
         .btn-glow:hover {
           box-shadow: 0 0 0 4px rgba(255,90,31,0.18), 0 12px 32px -8px rgba(255,90,31,0.4);
@@ -398,7 +423,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <div
         ref={glowRef}
         className="fixed left-0 top-0 w-[520px] h-[520px] -ml-[260px] -mt-[260px] rounded-full pointer-events-none z-0 opacity-[0.14]"
-        style={{ background: 'radial-gradient(circle, #ff5a1f 0%, transparent 68%)' }}
+        style={{
+          background: 'radial-gradient(circle, #ff5a1f 0%, transparent 68%)',
+          willChange: 'transform'
+        }}
       />
 
       {/* Decorative grid */}
