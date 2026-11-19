@@ -37,6 +37,30 @@ export default function App() {
   const isSignedIn = Boolean(user);
   const wasSignedInRef = useRef<boolean | null>(null);
 
+  // Dark mode state — initialized from localStorage or system preference
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    const saved = localStorage.getItem('carsuggest_theme');
+    if (saved === 'dark') return true;
+    if (saved === 'light') return false;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  // Sync dark class on <html> whenever isDark changes
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add('dark');
+      document.body.style.background = '#0a1020';
+      localStorage.setItem('carsuggest_theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      document.body.style.background = '#e8edf4';
+      localStorage.setItem('carsuggest_theme', 'light');
+    }
+  }, [isDark]);
+
+  const toggleDark = () => setIsDark(prev => !prev);
+
   // Auth modal
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalView, setAuthModalView] = useState<'sign-in' | 'sign-up'>('sign-in');
@@ -451,6 +475,8 @@ export default function App() {
         onOpenEmiCalculator={() => setIsEmiModalOpen(true)}
         onOpenOnRoadPrice={() => setIsOnRoadModalOpen(true)}
         onOpenEvBreakEven={() => setIsEvBreakEvenModalOpen(true)}
+        isDark={isDark}
+        onToggleDark={toggleDark}
       />
 
       {/* Main View Area */}

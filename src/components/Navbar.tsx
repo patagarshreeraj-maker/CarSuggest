@@ -15,7 +15,9 @@ import {
   ChevronDown,
   Percent,
   MapPin,
-  Zap
+  Zap,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -35,6 +37,8 @@ interface NavbarProps {
   onOpenOnRoadPrice?: () => void;
   onOpenEvBreakEven?: () => void;
   onOpenAuthModal?: (view?: 'sign-in' | 'sign-up') => void;
+  isDark?: boolean;
+  onToggleDark?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -51,7 +55,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenEmiCalculator,
   onOpenOnRoadPrice,
   onOpenEvBreakEven,
-  onOpenAuthModal
+  onOpenAuthModal,
+  isDark = false,
+  onToggleDark
 }) => {
   const { user, signOut } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -340,6 +346,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <MessageSquare className="w-4 h-4" />
           </button>
+
+          {/* Dark / Light Mode Toggle */}
+          {onToggleDark && (
+            <button
+              onClick={onToggleDark}
+              className="p-2 rounded-full text-slate-600 dark:text-slate-300 hover:text-[#ff5a1f] hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer"
+              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label="Toggle dark mode"
+            >
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+          )}
 
           {/* Primary CTA Button matching the HTML CarSuggest style */}
           <button
