@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Zap, Sparkles } from 'lucide-react';
+import { Zap } from 'lucide-react';
 
 interface CarImageProps {
   src?: string;

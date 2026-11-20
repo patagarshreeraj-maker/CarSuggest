@@ -27,7 +27,7 @@ import {
   ChevronRight,
   BatteryCharging
 } from 'lucide-react';
-import { Car, BodyType, FuelType, MatchScoreBreakdown } from '../types';
+import { Car, FuelType, MatchScoreBreakdown } from '../types';
 import { CarCard } from './CarCard';
 import { CarImage } from './CarImage';
 
