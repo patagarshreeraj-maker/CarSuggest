@@ -1,22 +1,7 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Sparkles,
-  ArrowRight,
-  ShieldCheck,
-  Fuel,
-  ArrowUpRight,
-  ChevronRight,
-  Sliders,
-  Check,
-  Zap,
-  Map,
-  Star,
-  TrendingUp,
-  IndianRupee,
-  Car as CarIcon,
-  Timer,
-  Trophy,
-  ChevronLeft
+  Search,
 } from 'lucide-react';
 import { Car } from '../types';
 import { InteractiveCar3D } from './InteractiveCar3D';
@@ -29,227 +14,157 @@ export interface LandingPageProps {
   onViewCarDetails: (car: Car) => void;
 }
 
-const CATEGORIES = [
-  'Hatchbacks', 'Compact SUVs', 'Sedans', 'MPVs', 'Electric',
-  'Strong Hybrid', 'CNG', 'Diesel', 'Petrol', 'Automatic', '5-Star Safety', 'Off-Road 4x4'
+const BRANDS = [
+  'Maruti Suzuki', 'Hyundai', 'Tata', 'Mahindra', 'Kia',
+  'Toyota', 'Honda', 'Skoda', 'Volkswagen', 'MG', 'Renault', 'Nissan'
 ];
 
 const FEATURES = [
   {
-    icon: Sparkles,
-    title: 'AI matchmaker',
-    desc: 'Describe how you drive and who rides along. Get a ranked shortlist — not an endless spreadsheet.',
-    color: '#ff5a1f',
-    bg: 'rgba(255,90,31,0.1)'
+    title: 'AI car finder',
+    desc: 'Answer a few questions on budget, fuel, daily driving, gearbox, passengers and must-have features. Get cars picked for you.'
   },
   {
-    icon: IndianRupee,
-    title: 'On-road price',
-    desc: 'Ex-showroom to on-road in ₹ Lakhs, with state RTO, insurance and fees clearly laid out.',
-    color: '#10b981',
-    bg: 'rgba(16,185,129,0.1)'
+    title: 'Ranked recommendations',
+    desc: 'Every car is scored against what you said matters, with AI notes on why it made your list.'
   },
   {
-    icon: ShieldCheck,
-    title: 'NCAP safety',
-    desc: 'Global NCAP and Bharat NCAP crash test ratings side by side, in plain honest language.',
-    color: '#3b82f6',
-    bg: 'rgba(59,130,246,0.1)'
+    title: '200+ car catalog',
+    desc: 'Filter by brand, price, body type, fuel, transmission and NCAP safety rating.'
   },
   {
-    icon: Fuel,
-    title: 'Real-world mileage',
-    desc: 'ARAI lab claims next to what Indian owners actually see in bumper-to-bumper city traffic.',
-    color: '#f59e0b',
-    bg: 'rgba(245,158,11,0.1)'
+    title: 'Car details',
+    desc: 'Specs, engine options, mileage, boot space, ground clearance, safety features, pros and cons, and variant prices.'
   },
   {
-    icon: Map,
-    title: 'Road profiles',
-    desc: 'City crawls, steep ghats, monsoon potholes and highway cruising scored per car.',
-    color: '#8b5cf6',
-    bg: 'rgba(139,92,246,0.1)'
+    title: 'Side-by-side comparison',
+    desc: 'Dimensions, performance, fuel economy, safety and service costs, with a verdict on which car wins each category.'
   },
   {
-    icon: TrendingUp,
-    title: '5-Year ownership cost',
-    desc: 'Fuel, service, insurance and resale depreciation mapped over the years you keep it.',
-    color: '#06b6d4',
-    bg: 'rgba(6,182,212,0.1)'
+    title: '5-year ownership studio',
+    desc: 'Depreciation, fuel or charging for your monthly km, servicing, insurance renewals and resale value, added up.'
+  },
+  {
+    title: 'AI car consultant',
+    desc: 'Ask in plain words: "Compare Creta SX(O) vs Seltos GTX+" or "Best automatic under ₹15 Lakhs for Bangalore traffic."'
+  },
+  {
+    title: 'Your account',
+    desc: 'Save favourites and comparisons, and see your earlier answers again.'
   }
 ];
 
-const ROAD_CONDITIONS = [
-  { id: 'city', label: 'City traffic', emoji: '🏙️', hint: 'Light steering & automatic gearboxes' },
-  { id: 'ghats', label: 'Ghat roads', emoji: '⛰️', hint: 'Hill-hold assist & instant torque' },
-  { id: 'highway', label: 'Highway runs', emoji: '🛣️', hint: 'High-speed stability & cruise control' },
-  { id: 'rough', label: 'Rough roads', emoji: '🌧️', hint: '190mm+ clearance & rugged suspension' }
+const STEPS = [
+  {
+    title: 'Tell us how you drive',
+    desc: 'Set a budget and pick fuel, transmission, passenger count, daily driving and the features you cannot do without.'
+  },
+  {
+    title: 'Get a ranked shortlist',
+    desc: 'Each car is scored against your answers, then AI adds notes on why it fits.'
+  },
+  {
+    title: 'Compare your finalists',
+    desc: 'Put cars side by side on dimensions, performance, fuel economy, safety and service costs, with a verdict for each category.'
+  },
+  {
+    title: 'Check what it costs to own',
+    desc: 'Run the five-year studio on your monthly kilometres before you visit a showroom.'
+  }
 ];
 
-const USE_CASES = [
-  { id: 'family', label: 'Family trips', emoji: '👨‍👩‍👧‍👦' },
-  { id: 'commute', label: 'Daily commute', emoji: '🏢' },
-  { id: 'weekend', label: 'Weekend drives', emoji: '🏕️' },
-  { id: 'highway', label: 'Highway warrior', emoji: '🚀' }
+const OWNERSHIP_COSTS = [
+  {
+    title: 'Depreciation',
+    desc: 'How much value the car loses each year, shown as a curve.'
+  },
+  {
+    title: 'Fuel or charging',
+    desc: 'Running cost based on the kilometres you drive each month.'
+  },
+  {
+    title: 'Routine maintenance',
+    desc: 'Servicing and upkeep costs over the five years.'
+  },
+  {
+    title: 'Insurance renewals',
+    desc: 'The premium for each year you keep the car.'
+  },
+  {
+    title: 'Resale value',
+    desc: 'The estimated price you could sell it for at the end.'
+  }
 ];
 
-const STATS = [
-  { value: 200, suffix: '+', label: 'Car Models', icon: CarIcon },
-  { value: 28, suffix: '', label: 'Indian States', icon: Map },
-  { value: 5, suffix: '-year', label: 'TCO Analysis', icon: Timer },
-  { value: 98, suffix: '%', label: 'Accuracy', icon: Trophy }
+const FAQS = [
+  {
+    q: 'How are cars ranked for me?',
+    a: 'Each car gets a score from your answers, weighted by what you say matters most, such as budget, fuel, transmission and passenger count. The same answers always give the same ranking. AI then adds plain-language notes on why each car fits.'
+  },
+  {
+    q: 'Is the on-road price exact?',
+    a: 'No, it is an estimate. RTO charges, insurance and fees differ by state and by variant, so confirm the final figure with your dealer.'
+  },
+  {
+    q: 'What does the mileage number mean?',
+    a: 'ARAI figures come from standard test conditions, so daily driving usually returns less. Use them to compare cars with each other, and expect real numbers to vary with traffic, load and driving style.'
+  },
+  {
+    q: 'Which cars are covered?',
+    a: 'Over 200 models across hatchbacks, sedans, SUVs, MPVs and EVs. You can filter by brand, price range, fuel type, transmission and NCAP safety rating.'
+  },
+  {
+    q: 'What can the AI consultant answer?',
+    a: 'Ask in plain words, for example to compare two variants or to find the best automatic car under your budget for city traffic. It runs on Google Gemini and answers in real time.'
+  },
+  {
+    q: 'What does an account give me?',
+    a: 'You can save favourite cars and comparison sets, and look back at your earlier finder answers from your dashboard.'
+  }
 ];
 
-const TRUST_BADGES = [
-  'Bharat NCAP Ratings',
-  'ARAI Certified Mileage',
-  'RTO State-Wise Pricing',
-  'Live Insurance Quotes',
-  'Zero Dealer Bias'
+const BUDGET_BUCKETS = [
+  { max: 8, name: 'Entry hatchbacks', examples: 'Alto K10, S-Presso and Tiago' },
+  { max: 12, name: 'Premium hatchbacks and sub-4m SUVs', examples: 'Swift, Baleno, Punch and Exter' },
+  { max: 18, name: 'Compact SUVs and sedans', examples: 'Creta, Seltos, Brezza and Verna' },
+  { max: 30, name: 'Midsize SUVs and MPVs', examples: 'Harrier, XUV700 and Innova Hycross' },
+  { max: 100, name: 'Premium SUVs and EVs', examples: 'Fortuner, Tucson and Carnival' }
 ];
-
-// Hook: animated counter
-function useCounter(target: number, duration = 1500, trigger: boolean) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    if (!trigger) return;
-    let start = 0;
-    const step = target / (duration / 16);
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= target) { setCount(target); clearInterval(timer); }
-      else setCount(Math.floor(start));
-    }, 16);
-    return () => clearInterval(timer);
-  }, [trigger, target, duration]);
-  return count;
-}
-
-// Stat Card with animated counter
-const StatCard: React.FC<{ stat: typeof STATS[0]; trigger: boolean }> = ({ stat, trigger }) => {
-  const count = useCounter(stat.value, 1200, trigger);
-  const Icon = stat.icon;
-  return (
-    <div className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 backdrop-blur-md hover:border-[#ff5a1f]/40 transition-all group">
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-1" style={{ background: 'rgba(255,90,31,0.12)' }}>
-        <Icon className="w-4.5 h-4.5 text-[#ff5a1f]" />
-      </div>
-      <div className="font-['Unbounded',sans-serif] font-black text-2xl text-[#101624] dark:text-white leading-none">
-        {count}{stat.suffix}
-      </div>
-      <div className="text-xs text-slate-500 dark:text-slate-400 font-medium text-center">{stat.label}</div>
-    </div>
-  );
-};
-
-// Feature card with tilt effect
-const FeatureCard: React.FC<{ feature: typeof FEATURES[0]; index: number }> = ({ feature, index }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const Icon = feature.icon;
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 14;
-    const y = -((e.clientY - rect.top) / rect.height - 0.5) * 14;
-    cardRef.current.style.transform = `perspective(600px) rotateX(${y}deg) rotateY(${x}deg) translateZ(4px)`;
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    if (!cardRef.current) return;
-    cardRef.current.style.transform = 'perspective(600px) rotateX(0deg) rotateY(0deg) translateZ(0)';
-  }, []);
-
-  return (
-    <div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className="cs-reveal p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 cursor-default group"
-      style={{
-        '--d': `${index * 0.07}s`,
-        transitionProperty: 'border-color, box-shadow',
-      } as React.CSSProperties}
-    >
-      <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
-        style={{ background: feature.bg }}
-      >
-        <Icon className="w-5 h-5" style={{ color: feature.color }} />
-      </div>
-      <h3 className="font-['Unbounded',sans-serif] font-semibold text-sm text-slate-900 dark:text-white mb-2">
-        {feature.title}
-      </h3>
-      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-        {feature.desc}
-      </p>
-    </div>
-  );
-};
-
-// Typewriter component
-const TYPEWRITER_WORDS = ['Indian roads.', 'Indian budgets.', 'Indian families.', 'Indian dreams.'];
-const Typewriter: React.FC = () => {
-  const [wordIdx, setWordIdx] = useState(0);
-  const [displayed, setDisplayed] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  useEffect(() => {
-    const word = TYPEWRITER_WORDS[wordIdx];
-    const speed = isDeleting ? 40 : 70;
-
-    const timer = setTimeout(() => {
-      if (!isDeleting && displayed === word) {
-        setTimeout(() => setIsDeleting(true), 1600);
-      } else if (isDeleting && displayed === '') {
-        setIsDeleting(false);
-        setWordIdx((prev) => (prev + 1) % TYPEWRITER_WORDS.length);
-      } else {
-        setDisplayed(isDeleting ? word.slice(0, displayed.length - 1) : word.slice(0, displayed.length + 1));
-      }
-    }, speed);
-
-    return () => clearTimeout(timer);
-  }, [displayed, isDeleting, wordIdx]);
-
-  return (
-    <span className="text-[#ff5a1f] relative">
-      {displayed}
-      <span className="inline-block w-[2px] h-[0.85em] bg-[#ff5a1f] ml-0.5 align-middle animate-pulse" />
-    </span>
-  );
-};
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   cars,
   onStartFinder,
   onExploreCars,
-  onViewCarDetails
+  onViewCarDetails,
 }) => {
-  const [budgetLakh, setBudgetLakh] = useState<number>(12);
-  const [activeRoads, setActiveRoads] = useState<string[]>(['city']);
-  const [activeUseCases, setActiveUseCases] = useState<string[]>(['commute']);
-  const [boostSpeed, setBoostSpeed] = useState<number>(0);
-  const [statsVisible, setStatsVisible] = useState(false);
-  const [carouselIdx, setCarouselIdx] = useState(0);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [showDragHint, setShowDragHint] = useState(true);
-  const glowRef = useRef<HTMLDivElement | null>(null);
-  const statsRef = useRef<HTMLDivElement>(null);
-  const carouselRef = useRef<HTMLDivElement>(null);
+  // 3D Car selection: 0: Fortuner, 1: Creta, 2: Polo
+  const [selectedCar3D, setSelectedCar3D] = useState<number>(0);
 
-  // Mouse tracking for glowing ambient light
+  // In-page mini wizard state
+  const [step, setStep] = useState<number>(0);
+  const [budget, setBudget] = useState<number>(12);
+  const [fuel, setFuel] = useState<string>('Petrol');
+  const [gear, setGear] = useState<string>('Manual');
+  const [road, setRoad] = useState<string>('City traffic');
+  const [passengers, setPassengers] = useState<string>('3–4');
+  const [priority, setPriority] = useState<string>('Safety rating');
+
+  // Search input state
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Mouse tracking for subtle ambient glow
+  const glowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const handlePointer = (e: PointerEvent) => {
+    const onMove = (e: MouseEvent) => {
       if (glowRef.current) {
         glowRef.current.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
       }
     };
-    window.addEventListener('pointermove', handlePointer);
-    return () => window.removeEventListener('pointermove', handlePointer);
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
   }, []);
 
-  // Intersection observer for section reveals
+  // Intersection observer for scroll reveal animations
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -260,648 +175,609 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           }
         });
       },
-      { threshold: 0.12 }
+      { threshold: 0.15 }
     );
-    document.querySelectorAll('.cs-reveal').forEach((el) => observer.observe(el));
+    document.querySelectorAll('.cs-rv').forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, []);
 
-  // Stats counter trigger
-  useEffect(() => {
-    if (!statsRef.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setStatsVisible(true); },
-      { threshold: 0.3 }
-    );
-    observer.observe(statsRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  // Scroll progress bar + drag hint
-  useEffect(() => {
-    const onScroll = () => {
-      const scrolled = window.scrollY;
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      setScrollProgress(maxScroll > 0 ? (scrolled / maxScroll) * 100 : 0);
-      if (scrolled > 100) setShowDragHint(false);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  const getSegmentName = (val: number) => {
-    if (val <= 8) return 'Entry & Commuter Hatchbacks';
-    if (val <= 12) return 'Premium Hatchbacks & Sub-4m SUVs';
-    if (val <= 18) return 'Compact SUVs & Family Sedans';
-    if (val <= 30) return 'Midsize SUVs & 7-Seater MPVs';
-    return 'Executive Sedans, Luxury SUVs & EVs';
-  };
-
-  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const nextVal = parseFloat(e.target.value);
-    setBudgetLakh(nextVal);
-    setBoostSpeed((prev) => Math.max(prev + 1.2, 3.5));
-    setCarouselIdx(0);
-  };
-
-  const toggleRoad = (roadId: string) => {
-    setActiveRoads((prev) =>
-      prev.includes(roadId) ? prev.filter((r) => r !== roadId) : [...prev, roadId]
-    );
-    setBoostSpeed((prev) => Math.max(prev + 2.0, 5.0));
-  };
-
-  const toggleUseCase = (id: string) => {
-    setActiveUseCases((prev) =>
-      prev.includes(id) ? prev.filter((u) => u !== id) : [...prev, id]
-    );
-  };
-
-  const approximateOnRoad = (budgetLakh * 1.15).toFixed(1);
-  const sliderPercentage = ((budgetLakh - 5) / (50 - 5)) * 100;
-
-  // Matching cars from dataset
-  const previewCars = useMemo(() => {
+  // Matching shortlist for mini-wizard results
+  const matchingCars = useMemo(() => {
     if (!cars || !Array.isArray(cars)) return [];
     return cars
       .filter((c) => {
         const minP = c.priceMinLakh ?? 0;
         const maxP = c.priceMaxLakh ?? 100;
-        return minP <= budgetLakh + 3 && maxP >= budgetLakh - 3;
+        return minP <= budget + 3 && maxP >= budget - 3;
       })
-      .slice(0, 9);
-  }, [cars, budgetLakh]);
+      .slice(0, 3);
+  }, [cars, budget]);
 
-  const visibleCars = previewCars.slice(carouselIdx, carouselIdx + 3);
-  const canPrev = carouselIdx > 0;
-  const canNext = carouselIdx + 3 < previewCars.length;
+  const activeBucket = useMemo(() => {
+    return BUDGET_BUCKETS.find((b) => budget <= b.max) || BUDGET_BUCKETS[BUDGET_BUCKETS.length - 1];
+  }, [budget]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      onExploreCars();
+    } else {
+      onStartFinder();
+    }
+  };
 
   return (
-    <div className="relative min-h-screen bg-[#f8fafc] dark:bg-[#0a1020] text-[#101624] dark:text-[#eef2fb] font-['Hanken_Grotesk',sans-serif] selection:bg-[#ff5a1f]/20 selection:text-[#ff5a1f] overflow-x-hidden">
-      {/* Scroll progress bar – fixed top */}
-      <div
-        className="fixed top-0 left-0 h-[3px] z-50 transition-all duration-100 rounded-r-full"
-        style={{
-          width: `${scrollProgress}%`,
-          background: 'linear-gradient(90deg, #ff5a1f, #ff9a5f)',
-          boxShadow: '0 0 8px rgba(255,90,31,0.6)',
-        }}
+    <div className="relative min-h-screen bg-[#d9dfe8] dark:bg-[#0a1020] text-[#101624] dark:text-[#eef2fb] font-['Hanken_Grotesk',system-ui,sans-serif] overflow-x-hidden selection:bg-[#ff5a1f]/20 selection:text-[#ff5a1f]">
+      {/* 3D Scene in background */}
+      <InteractiveCar3D
+        selectedCarIndex={selectedCar3D}
+        onCarSelect={(idx) => setSelectedCar3D(idx)}
       />
 
-      {/* Drag-to-rotate hint on canvas */}
-      {showDragHint && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-[#101624]/70 dark:bg-black/60 backdrop-blur-md text-white text-xs font-semibold animate-bounce pointer-events-none">
-          <span>🖱️</span>
-          <span>Drag to rotate the car · Scroll to explore</span>
-        </div>
-      )}
+      {/* Radial glow follower */}
+      <div
+        ref={glowRef}
+        className="fixed top-0 left-0 w-[560px] h-[560px] -ml-[280px] -mt-[280px] rounded-full bg-[#ff5a1f]/15 blur-[120px] pointer-events-none z-0 transition-transform duration-100 ease-out"
+      />
 
-      {/* Scoped Styles */}
+      {/* Scoped CSS styles matching landigpage.html */}
       <style>{`
         .cs-font-display { font-family: 'Unbounded', sans-serif; }
-        @keyframes cs-dash-roll { from { transform: translateX(-30px); } to { transform: translateX(70px); } }
-        .cs-dash::after {
+        .cs-rv {
+          opacity: 0;
+          clip-path: inset(0 100% 0 0);
+          transition: clip-path 1.1s cubic-bezier(.7,0,.2,1) var(--d, 0s), opacity .4s var(--d, 0s);
+        }
+        .cs-rv.cs-in {
+          opacity: 1;
+          clip-path: inset(-20px -20px -20px -20px);
+        }
+        @keyframes cs-roll {
+          from { left: -30px; }
+          to { left: 70px; }
+        }
+        .cs-cue-dash::after {
           content: "";
           position: absolute;
           inset: 0;
-          width: 32px;
+          width: 30px;
           background: #ff5a1f;
-          animation: cs-dash-roll 1.2s linear infinite;
-          will-change: transform;
+          animation: cs-roll 1.2s linear infinite;
         }
-        @keyframes cs-marquee { to { transform: translateX(-50%); } }
+        @keyframes cs-marquee {
+          to { transform: translateX(-50%); }
+        }
         .cs-marquee-inner {
-          display: inline-flex;
-          align-items: center;
-          white-space: nowrap;
+          display: inline-block;
           animation: cs-marquee 28s linear infinite;
+          white-space: nowrap;
         }
-        .cs-marquee-inner:hover { animation-play-state: paused; }
-        .cs-reveal {
-          opacity: 0;
-          transform: translateY(22px);
-          transition: opacity 0.65s cubic-bezier(.2,.8,.2,1) var(--d, 0s),
-                      transform 0.65s cubic-bezier(.2,.8,.2,1) var(--d, 0s);
-        }
-        .cs-reveal.cs-in {
-          opacity: 1;
-          transform: translateY(0);
-        }
-        .cs-feature-row:hover {
-          padding-left: 28px;
-          background: linear-gradient(90deg, rgba(255,90,31,0.10), transparent);
-        }
-        @keyframes float-y {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
-        }
-        .cs-float { animation: float-y 3.5s ease-in-out infinite; }
-        @keyframes spin-slow { to { transform: rotate(360deg); } }
-        .cs-spin { animation: spin-slow 12s linear infinite; }
-        @keyframes shimmer {
-          0% { transform: translateX(-120%); }
-          100% { transform: translateX(320%); }
-        }
-        .cs-shimmer {
-          overflow: hidden;
-        }
-        .cs-shimmer::after {
-          content: "";
-          position: absolute;
-          top: 0;
-          bottom: 0;
-          left: 0;
-          width: 40%;
-          background: linear-gradient(90deg, transparent, rgba(255,90,31,0.35), transparent);
-          animation: shimmer 2.6s linear infinite;
-          will-change: transform;
-        }
-        .btn-glow:hover {
-          box-shadow: 0 0 0 4px rgba(255,90,31,0.18), 0 12px 32px -8px rgba(255,90,31,0.4);
-        }
-        .card-hover {
-          transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .card-hover:hover {
-          transform: translateY(-2px) scale(1.015);
-          box-shadow: 0 12px 36px -8px rgba(0,0,0,0.12);
+        .cs-r2:hover {
+          padding-left: 24px;
+          background: linear-gradient(90deg, rgba(255,90,31,0.12), transparent);
         }
       `}</style>
 
-      {/* 3D WebGL Interactive Car */}
-      <InteractiveCar3D boostSpeed={boostSpeed} />
-
-      {/* Ambient Mouse Glow */}
-      <div
-        ref={glowRef}
-        className="fixed left-0 top-0 w-[520px] h-[520px] -ml-[260px] -mt-[260px] rounded-full pointer-events-none z-0 opacity-[0.14]"
-        style={{
-          background: 'radial-gradient(circle, #ff5a1f 0%, transparent 68%)',
-          willChange: 'transform'
-        }}
-      />
-
-      {/* Decorative grid */}
-      <div
-        className="fixed inset-0 pointer-events-none z-0 opacity-[0.025] dark:opacity-[0.04]"
-        style={{
-          backgroundImage: 'linear-gradient(#101624 1px, transparent 1px), linear-gradient(90deg, #101624 1px, transparent 1px)',
-          backgroundSize: '48px 48px'
-        }}
-      />
-
+      {/* Main Content */}
       <main id="top" className="relative z-10">
-
-        {/* ─────────────── SECTION 1: HERO ─────────────── */}
-        <section id="hero" className="min-h-[92svh] px-[5vw] pt-24 md:pt-32 pb-16 flex flex-col justify-center max-w-7xl mx-auto">
-          <div className="max-w-3xl">
-            {/* Badge */}
-            <div
-              className="cs-reveal inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 backdrop-blur-md text-xs font-semibold text-slate-700 dark:text-slate-200 mb-6 shadow-sm"
-              style={{ '--d': '0s' } as React.CSSProperties}
-            >
-              <span className="w-2 h-2 rounded-full bg-[#ff5a1f] animate-pulse" />
-              <span>India's AI-powered Automotive Intelligence Engine</span>
-              <span className="px-1.5 py-0.5 rounded-full bg-[#ff5a1f]/15 text-[#ff5a1f] text-[10px] font-bold">NEW</span>
-            </div>
-
-            {/* Headline with Typewriter */}
-            <h1
-              className="cs-reveal cs-font-display font-extrabold tracking-tight text-[clamp(2.3rem,6.2vw,5rem)] leading-[1.04] text-[#101624] dark:text-[#eef2fb] mb-5"
-              style={{ '--d': '0.1s' } as React.CSSProperties}
-            >
-              The right car for
-              <br />
-              <Typewriter />
+        {/* ── SECTION 1: HERO ── */}
+        <section id="hero" className="min-h-screen px-[5vw] pt-[20vh] pb-[10vh] flex flex-col justify-center">
+          <div className="max-w-4xl">
+            <h1 className="cs-font-display font-extrabold text-[clamp(2.4rem,6.4vw,5.4rem)] leading-[1.02] tracking-tight text-[#101624] dark:text-[#eef2fb] mb-6">
+              <span className="block overflow-hidden pb-1">
+                <span className="inline-block transform animate-[fadeIn_0.8s_ease-out_forwards]">
+                  The right car
+                </span>
+              </span>
+              <span className="block overflow-hidden pb-1">
+                <span className="inline-block text-[#ff5a1f] transform animate-[fadeIn_1.0s_ease-out_forwards]">
+                  for Indian roads.
+                </span>
+              </span>
             </h1>
 
-            {/* Subheadline */}
-            <p
-              className="cs-reveal text-[clamp(1rem,1.7vw,1.2rem)] text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed mb-6"
-              style={{ '--d': '0.3s' } as React.CSSProperties}
-            >
-              Tell us your budget, your roads and who rides along. CarSuggest weighs ex-showroom prices,
-              ARAI mileage, Bharat NCAP ratings and 5-year ownership costs — then gives you a shortlist you can trust.
+            <p className="cs-rv text-base sm:text-lg text-[#556078] dark:text-[#9aa6c0] max-w-2xl leading-relaxed mb-8" style={{ '--d': '0.3s' } as React.CSSProperties}>
+              Search over 200 car models, answer four questions for a shortlist, or ask the AI consultant.
+              Every car is checked for on-road price, ARAI mileage, Global and Bharat NCAP ratings and what it costs to own for five years.
             </p>
 
-            {/* Use-case quick picks */}
-            <div
-              className="cs-reveal flex flex-wrap gap-2 mb-7"
-              style={{ '--d': '0.45s' } as React.CSSProperties}
+            {/* Quick Search Form */}
+            <form
+              onSubmit={handleSearchSubmit}
+              className="cs-rv flex items-center gap-2 max-w-xl p-2 rounded-full border border-[#101624]/16 dark:border-white/16 bg-white/70 dark:bg-[#0e162a]/70 backdrop-blur-xl shadow-lg focus-within:border-[#ff5a1f] focus-within:ring-2 focus-within:ring-[#ff5a1f]/30 transition-all mb-4"
+              style={{ '--d': '0.5s' } as React.CSSProperties}
             >
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 self-center mr-1">I'm buying for:</span>
-              {USE_CASES.map((uc) => (
+              <Search className="w-5 h-5 text-[#556078] dark:text-[#9aa6c0] ml-3 shrink-0" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search a car or ask a question (e.g. Creta vs Seltos)"
+                className="w-full bg-transparent px-2 py-1.5 text-sm text-[#101624] dark:text-[#eef2fb] outline-none placeholder:text-[#556078]/70 dark:placeholder:text-[#9aa6c0]/70"
+              />
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-full bg-[#101624] dark:bg-white text-white dark:text-[#101624] text-xs font-bold hover:scale-105 transition-all shrink-0 cursor-pointer"
+              >
+                Search
+              </button>
+            </form>
+
+            {/* Popular quick chips */}
+            <div className="cs-rv flex flex-wrap gap-2 mb-10" style={{ '--d': '0.65s' } as React.CSSProperties}>
+              {[
+                'Creta vs Seltos',
+                'Best automatic under ₹15 Lakhs',
+                'Safest compact SUV',
+                'EV for city commute',
+                '7-Seater family MPV'
+              ].map((chip, i) => (
                 <button
-                  key={uc.id}
-                  onClick={() => toggleUseCase(uc.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-                    activeUseCases.includes(uc.id)
-                      ? 'border-[#ff5a1f] bg-[#ff5a1f]/10 text-[#ff5a1f] shadow-sm'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#ff5a1f]/40'
-                  }`}
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery(chip);
+                    onExploreCars();
+                  }}
+                  className="px-3.5 py-1.5 rounded-full border border-[#101624]/16 dark:border-white/16 bg-white/40 dark:bg-slate-900/40 text-xs text-[#556078] dark:text-[#9aa6c0] hover:border-[#ff5a1f] hover:text-[#ff5a1f] transition-all cursor-pointer"
                 >
-                  <span>{uc.emoji}</span>
-                  <span>{uc.label}</span>
+                  {chip}
                 </button>
               ))}
             </div>
 
-            {/* CTAs */}
-            <div
-              className="cs-reveal flex flex-wrap items-center gap-3.5 mb-10"
-              style={{ '--d': '0.55s' } as React.CSSProperties}
-            >
+            {/* CTA action buttons */}
+            <div className="cs-rv flex flex-wrap gap-3 items-center" style={{ '--d': '0.8s' } as React.CSSProperties}>
               <button
                 onClick={onStartFinder}
-                className="btn-glow inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-[#101624] dark:bg-[#eef2fb] text-white dark:text-[#101624] font-bold text-sm hover:-translate-y-0.5 hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden"
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#ff5a1f] text-white font-bold text-sm hover:scale-105 hover:shadow-[0_12px_32px_-6px_#ff5a1f] transition-all cursor-pointer"
               >
-                <span className="cs-shimmer absolute inset-0 rounded-full" />
-                <Sparkles className="w-4 h-4 text-[#ff5a1f] relative z-10" />
-                <span className="relative z-10">Find my car</span>
-                <ArrowRight className="w-4 h-4 relative z-10" />
+                <Sparkles className="w-4 h-4" />
+                Launch CarSuggest AI
               </button>
-
-              <a
-                href="#fx"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white/60 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-sm hover:bg-white/90 dark:hover:bg-slate-800 transition-all"
-              >
-                <span>See what it checks</span>
-              </a>
-
               <button
                 onClick={onExploreCars}
-                className="inline-flex items-center gap-2 px-5 py-3.5 rounded-full text-slate-600 dark:text-slate-300 font-medium text-sm hover:text-[#ff5a1f] transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-[#101624]/16 dark:border-white/16 bg-white/60 dark:bg-slate-900/60 font-semibold text-sm hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer"
               >
-                <span>Browse 200+ models</span>
-                <ArrowUpRight className="w-4 h-4" />
+                Browse 200+ Cars
               </button>
             </div>
 
-            {/* Scroll cue */}
-            <div
-              className="cs-reveal flex items-center gap-3.5 text-xs text-slate-400 uppercase tracking-widest font-medium"
-              style={{ '--d': '0.7s' } as React.CSSProperties}
-            >
-              <i className="cs-dash w-[70px] h-[2px] bg-slate-200 dark:bg-slate-700 relative overflow-hidden inline-block" />
-              <span>Scroll to steer the 3D car</span>
+            {/* Scroll cue indicator */}
+            <div className="cs-rv flex items-center gap-3 mt-14 text-xs font-medium text-[#556078] dark:text-[#9aa6c0]" style={{ '--d': '1s' } as React.CSSProperties}>
+              <i className="w-[70px] h-[2px] bg-[#101624]/16 dark:bg-white/16 relative overflow-hidden cs-cue-dash inline-block rounded-full" />
+              <span>Scroll to drive &amp; explore</span>
             </div>
           </div>
         </section>
 
-        {/* ─────────────── MARQUEE TICKER ─────────────── */}
-        <div className="overflow-hidden whitespace-nowrap py-4 border-y border-slate-200/80 dark:border-slate-800 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md">
-          <div className="cs-marquee-inner cs-font-display text-xs md:text-sm tracking-wide text-slate-500 dark:text-slate-400 font-medium uppercase">
-            {[...CATEGORIES, ...CATEGORIES].map((cat, idx) => (
-              <span key={idx} className="inline-flex items-center mx-5 gap-3 hover:text-[#ff5a1f] transition-colors cursor-default">
-                <span>{cat}</span>
-                <i className="inline-block w-2 h-2 rounded-full bg-[#ff5a1f]" />
+        {/* ── SECTION 2: MARQUEE TICKER ── */}
+        <div className="overflow-hidden py-4 border-y border-[#101624]/12 dark:border-white/12 bg-white/50 dark:bg-[#0e162a]/50 backdrop-blur-md">
+          <div className="cs-marquee-inner flex items-center gap-8 cs-font-display text-sm font-semibold text-[#556078] dark:text-[#9aa6c0]">
+            {[...BRANDS, ...BRANDS].map((brand, i) => (
+              <span key={i} className="inline-flex items-center gap-3">
+                <span>{brand}</span>
+                <i className="w-1.5 h-1.5 rounded-full bg-[#ff5a1f]" />
               </span>
             ))}
           </div>
         </div>
 
-        {/* ─────────────── SECTION 2: STATS ─────────────── */}
-        <section ref={statsRef} className="px-[5vw] py-16 max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {STATS.map((stat, i) => (
-              <StatCard key={i} stat={stat} trigger={statsVisible} />
-            ))}
-          </div>
-
-          {/* Trust Badges */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-            {TRUST_BADGES.map((badge, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300"
-              >
-                <Check className="w-3 h-3 text-emerald-500" />
-                {badge}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        {/* ─────────────── SECTION 3: FEATURES GRID ─────────────── */}
-        <section id="fx" className="px-[5vw] py-[12vh] max-w-7xl mx-auto">
-          <div className="mb-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#ff5a1f] mb-3">
-              <ShieldCheck className="w-4 h-4" />
-              <span>Objective Evaluation</span>
+        {/* ── SECTION 3: STATS STRIP ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 border-b border-[#101624]/12 dark:border-white/12 bg-white/40 dark:bg-[#0e162a]/40 backdrop-blur-md">
+          {[
+            { val: '200+', label: 'Car models in the catalog' },
+            { val: '5', label: 'Categories: hatchback, sedan, SUV, MPV & EV' },
+            { val: '5 Years', label: 'Of ownership cost, worked out per car' },
+            { val: 'NCAP', label: 'Safety ratings in filters and car details' }
+          ].map((st, i) => (
+            <div key={i} className="p-6 md:p-8 border-l first:border-l-0 border-[#101624]/12 dark:border-white/12">
+              <div className="cs-font-display font-extrabold text-2xl md:text-3xl tracking-tight text-[#101624] dark:text-[#eef2fb] mb-1">
+                {st.val}
+              </div>
+              <div className="text-xs text-[#556078] dark:text-[#9aa6c0] leading-snug">
+                {st.label}
+              </div>
             </div>
-            <h2 className="cs-reveal cs-font-display font-extrabold text-[clamp(1.8rem,4vw,3rem)] leading-tight text-slate-900 dark:text-slate-100">
+          ))}
+        </div>
+
+        {/* ── SECTION 4: FEATURES GRID (#fx) ── */}
+        <section id="fx" className="min-h-screen px-[5vw] py-[14vh] flex flex-col justify-center">
+          <div className="max-w-2xl md:ml-auto">
+            <h2 className="cs-rv cs-font-display font-extrabold text-[clamp(1.8rem,4vw,3.2rem)] leading-tight text-[#101624] dark:text-[#eef2fb] mb-3">
               Everything car buyers in India argue about, settled.
             </h2>
-          </div>
+            <p className="cs-rv text-sm md:text-base text-[#556078] dark:text-[#9aa6c0] mb-8">
+              No sponsor placements, no dealer commissions, no phone calls. Just verified automotive data for Indian driving conditions.
+            </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {FEATURES.map((feat, i) => (
-              <FeatureCard key={i} feature={feat} index={i} />
-            ))}
+            <div className="border-t border-[#101624]/12 dark:border-white/12">
+              {FEATURES.map((f, i) => (
+                <div
+                  key={i}
+                  className="cs-r2 cs-rv grid grid-cols-1 md:grid-cols-[1fr_1.4fr] gap-2 md:gap-6 py-5 px-3 border-bottom border-b border-[#101624]/12 dark:border-white/12 transition-all cursor-pointer rounded-xl"
+                  style={{ '--d': `${i * 0.08}s` } as React.CSSProperties}
+                  onClick={onStartFinder}
+                >
+                  <h3 className="cs-font-display font-bold text-sm md:text-base text-[#101624] dark:text-[#eef2fb]">
+                    {f.title}
+                  </h3>
+                  <p className="text-xs text-[#556078] dark:text-[#9aa6c0] leading-relaxed">
+                    {f.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* ─────────────── SECTION 4: INTERACTIVE BUDGET MATCHER ─────────────── */}
-        <section id="try" className="px-[5vw] py-[12vh] max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-[1fr_1fr] gap-8 items-start">
-            {/* Left: Controls */}
-            <div className="cs-reveal" style={{ '--d': '0.1s' } as React.CSSProperties}>
-              <div className="p-6 md:p-8 rounded-3xl border border-slate-200/90 dark:border-slate-800/90 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-xl shadow-slate-900/5">
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#ff5a1f] flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5" />
-                    Live Segment Matcher
+        {/* ── SECTION 5: HOW IT WORKS (#how) ── */}
+        <section id="how" className="min-h-screen px-[5vw] py-[14vh] flex flex-col justify-center">
+          <div className="max-w-2xl">
+            <h2 className="cs-rv cs-font-display font-extrabold text-[clamp(1.8rem,4vw,3.2rem)] leading-tight text-[#101624] dark:text-[#eef2fb] mb-8">
+              From budget to shortlist in four steps.
+            </h2>
+
+            <ol className="border-t border-[#101624]/12 dark:border-white/12 list-none p-0 m-0">
+              {STEPS.map((stepItem, i) => (
+                <li
+                  key={i}
+                  className="cs-rv grid grid-cols-[3.2rem_1fr] gap-4 py-6 border-b border-[#101624]/12 dark:border-white/12"
+                  style={{ '--d': `${i * 0.1}s` } as React.CSSProperties}
+                >
+                  <span className="cs-font-display font-black text-2xl text-[#ff5a1f]">
+                    0{i + 1}
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                    Real-time
-                  </span>
-                </div>
+                  <div>
+                    <h3 className="cs-font-display font-bold text-sm md:text-base text-[#101624] dark:text-[#eef2fb] mb-1">
+                      {stepItem.title}
+                    </h3>
+                    <p className="text-xs text-[#556078] dark:text-[#9aa6c0] leading-relaxed">
+                      {stepItem.desc}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
 
-                <h2 className="cs-font-display font-bold text-xl md:text-2xl text-slate-900 dark:text-white mb-4">
-                  What is your budget?
-                </h2>
+        {/* ── SECTION 6: INTERACTIVE MINI WIZARD (#try) ── */}
+        <section id="try" className="min-h-screen px-[5vw] py-[14vh] flex flex-col justify-center">
+          <div className="max-w-xl md:ml-auto">
+            <div className="cs-rv p-6 md:p-8 rounded-3xl border border-[#101624]/16 dark:border-white/16 bg-white/70 dark:bg-[#0e162a]/70 backdrop-blur-xl shadow-2xl">
+              {/* Step indicator */}
+              <div className="flex items-center justify-between text-xs text-[#556078] dark:text-[#9aa6c0] mb-2 font-medium">
+                <span>{step < 4 ? `Question ${step + 1} of 4` : 'Your Starting Point'}</span>
+                <span className="text-[#ff5a1f] font-semibold">{Math.min(step + 1, 4) * 25}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-[#101624]/10 dark:bg-white/10 rounded-full overflow-hidden mb-6">
+                <div
+                  className="h-full bg-[#ff5a1f] rounded-full transition-all duration-300"
+                  style={{ width: `${(Math.min(step + 1, 4) / 4) * 100}%` }}
+                />
+              </div>
 
-                {/* Budget Display */}
-                <div className="cs-font-display font-black text-[clamp(2.6rem,5vw,3.8rem)] text-slate-900 dark:text-white leading-none tracking-tight flex items-baseline gap-2 mb-3">
-                  <span className="tabular-nums transition-all duration-150">₹{budgetLakh.toFixed(1)}</span>
-                  <small className="font-['Hanken_Grotesk'] text-xs font-medium text-slate-500 tracking-normal">Lakhs ex-showroom</small>
-                </div>
-
-                {/* Slider with track */}
-                <div className="relative mb-5">
+              {/* STEP 0: Budget */}
+              {step === 0 && (
+                <div>
+                  <h2 className="cs-font-display font-bold text-xl text-[#101624] dark:text-[#eef2fb] mb-4">
+                    What is your budget?
+                  </h2>
+                  <div className="cs-font-display text-3xl font-extrabold text-[#101624] dark:text-[#eef2fb] mb-2">
+                    ₹{budget} <small className="text-xs font-normal text-[#556078] dark:text-[#9aa6c0]">Lakhs ex-showroom</small>
+                  </div>
                   <input
                     type="range"
                     min="5"
                     max="50"
                     step="0.5"
-                    value={budgetLakh}
-                    onChange={handleBudgetChange}
-                    className="w-full accent-[#ff5a1f] h-2 bg-slate-200 dark:bg-slate-800 rounded-lg cursor-pointer mb-2 relative z-10"
-                    aria-label="Budget in Lakhs"
+                    value={budget}
+                    onChange={(e) => setBudget(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-[#101624]/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#ff5a1f] my-4"
                   />
-                  <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#ff5a1f] to-[#ff8c5a] transition-all duration-150 rounded-full"
-                      style={{ width: `${sliderPercentage}%` }}
-                    />
-                  </div>
+                  <p className="text-xs text-[#556078] dark:text-[#9aa6c0] leading-relaxed">
+                    On-road, roughly <b className="text-[#101624] dark:text-[#eef2fb]">₹{(budget * 1.15).toFixed(1)} Lakhs</b>. RTO, insurance and fees vary by state.
+                  </p>
                 </div>
+              )}
 
-                {/* Price info cards */}
-                <div className="grid grid-cols-2 gap-2.5 mb-5">
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60">
-                    <div className="text-[10px] text-slate-500 mb-0.5">On-road estimate</div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white">₹{approximateOnRoad}L</div>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[#ff5a1f]/8 border border-[#ff5a1f]/20">
-                    <div className="text-[10px] text-[#ff5a1f] mb-0.5">Market segment</div>
-                    <div className="text-[11px] font-bold text-[#ff5a1f] leading-tight">{getSegmentName(budgetLakh)}</div>
-                  </div>
-                </div>
-
-                {/* Road condition chips */}
-                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2.5">Primary driving terrain:</p>
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {ROAD_CONDITIONS.map((cond) => {
-                    const isActive = activeRoads.includes(cond.id);
-                    return (
+              {/* STEP 1: Fuel & Gearbox */}
+              {step === 1 && (
+                <div>
+                  <h2 className="cs-font-display font-bold text-xl text-[#101624] dark:text-[#eef2fb] mb-4">
+                    What should power it?
+                  </h2>
+                  <div className="text-xs text-[#556078] dark:text-[#9aa6c0] mb-2 font-semibold uppercase tracking-wider">Fuel Type</div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {['Petrol', 'Diesel', 'CNG', 'Hybrid', 'Electric'].map((f) => (
                       <button
-                        key={cond.id}
-                        onClick={() => toggleRoad(cond.id)}
-                        title={cond.hint}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-                          isActive
-                            ? 'border-[#ff5a1f] bg-[#ff5a1f]/12 text-[#ff5a1f] shadow-sm shadow-[#ff5a1f]/15'
-                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#ff5a1f]/40'
+                        key={f}
+                        type="button"
+                        onClick={() => setFuel(f)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                          fuel === f
+                            ? 'bg-[#ff5a1f] text-white border border-[#ff5a1f]'
+                            : 'border border-[#101624]/16 dark:border-white/16 text-[#101624] dark:text-[#eef2fb] hover:border-[#ff5a1f]'
                         }`}
                       >
-                        <span>{cond.emoji}</span>
-                        {isActive && <Check className="w-3 h-3" />}
-                        <span>{cond.label}</span>
+                        {f}
                       </button>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
 
-                {/* CTA */}
+                  <div className="text-xs text-[#556078] dark:text-[#9aa6c0] mb-2 font-semibold uppercase tracking-wider">Transmission</div>
+                  <div className="flex flex-wrap gap-2">
+                    {['Manual', 'Automatic'].map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setGear(g)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                          gear === g
+                            ? 'bg-[#ff5a1f] text-white border border-[#ff5a1f]'
+                            : 'border border-[#101624]/16 dark:border-white/16 text-[#101624] dark:text-[#eef2fb] hover:border-[#ff5a1f]'
+                        }`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: Roads & Passengers */}
+              {step === 2 && (
+                <div>
+                  <h2 className="cs-font-display font-bold text-xl text-[#101624] dark:text-[#eef2fb] mb-4">
+                    Where do you drive, and with whom?
+                  </h2>
+                  <div className="text-xs text-[#556078] dark:text-[#9aa6c0] mb-2 font-semibold uppercase tracking-wider">Driving Terrain</div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {['City traffic', 'Ghat roads', 'Highway runs', 'Rough roads'].map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setRoad(r)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                          road === r
+                            ? 'bg-[#ff5a1f] text-white border border-[#ff5a1f]'
+                            : 'border border-[#101624]/16 dark:border-white/16 text-[#101624] dark:text-[#eef2fb] hover:border-[#ff5a1f]'
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="text-xs text-[#556078] dark:text-[#9aa6c0] mb-2 font-semibold uppercase tracking-wider">Passenger Capacity</div>
+                  <div className="flex flex-wrap gap-2">
+                    {['1–2', '3–4', '5–7'].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPassengers(p)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                          passengers === p
+                            ? 'bg-[#ff5a1f] text-white border border-[#ff5a1f]'
+                            : 'border border-[#101624]/16 dark:border-white/16 text-[#101624] dark:text-[#eef2fb] hover:border-[#ff5a1f]'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: Priorities */}
+              {step === 3 && (
+                <div>
+                  <h2 className="cs-font-display font-bold text-xl text-[#101624] dark:text-[#eef2fb] mb-4">
+                    What matters most?
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {['Safety rating', 'Mileage', 'Comfort', 'Low running cost', 'Boot space'].map((pr) => (
+                      <button
+                        key={pr}
+                        type="button"
+                        onClick={() => setPriority(pr)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                          priority === pr
+                            ? 'bg-[#ff5a1f] text-white border border-[#ff5a1f]'
+                            : 'border border-[#101624]/16 dark:border-white/16 text-[#101624] dark:text-[#eef2fb] hover:border-[#ff5a1f]'
+                        }`}
+                      >
+                        {pr}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: Results preview */}
+              {step === 4 && (
+                <div>
+                  <h2 className="cs-font-display font-bold text-xl text-[#101624] dark:text-[#eef2fb] mb-2">
+                    Start your shortlist here
+                  </h2>
+                  <div className="cs-font-display font-extrabold text-lg text-[#ff5a1f] mb-2">
+                    {activeBucket.name}
+                  </div>
+                  <p className="text-xs text-[#556078] dark:text-[#9aa6c0] leading-relaxed mb-4">
+                    Models in this segment include {activeBucket.examples}. Built for {road.toLowerCase()} with {passengers} passengers, {fuel.toLowerCase()} and {gear.toLowerCase()} gearbox, scored on {priority.toLowerCase()} first.
+                  </p>
+
+                  {/* Matching cars preview */}
+                  {matchingCars.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      {matchingCars.map((car) => (
+                        <div
+                          key={car.id}
+                          onClick={() => onViewCarDetails(car)}
+                          className="p-2 rounded-xl border border-[#101624]/10 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 hover:border-[#ff5a1f]/50 cursor-pointer text-left transition-all"
+                        >
+                          <div className="h-14 rounded-lg overflow-hidden mb-1.5 bg-slate-200 dark:bg-slate-800">
+                            <CarImage
+                              src={car.image}
+                              alt={car.name}
+                              brand={car.brand}
+                              model={car.model}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="text-[10px] font-bold text-[#ff5a1f] uppercase truncate">{car.brand}</div>
+                          <div className="text-xs font-bold text-[#101624] dark:text-white truncate">{car.model}</div>
+                          <div className="text-[10px] text-[#556078] dark:text-[#9aa6c0]">₹{car.priceMinLakh}L+</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Navigation buttons */}
+              <div className="flex items-center gap-3 mt-6 pt-4 border-t border-[#101624]/10 dark:border-white/10">
+                {step > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStep((s) => (s === 4 ? 0 : s - 1))}
+                    className="px-5 py-2 rounded-full border border-[#101624]/16 dark:border-white/16 text-xs font-semibold hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer"
+                  >
+                    {step === 4 ? 'Start over' : 'Back'}
+                  </button>
+                )}
                 <button
-                  onClick={onStartFinder}
-                  className="btn-glow w-full py-3.5 rounded-full bg-[#101624] dark:bg-[#eef2fb] text-white dark:text-[#101624] font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md relative overflow-hidden"
+                  type="button"
+                  onClick={() => {
+                    if (step < 4) {
+                      setStep((s) => s + 1);
+                    } else {
+                      onStartFinder();
+                    }
+                  }}
+                  className="ml-auto px-6 py-2.5 rounded-full bg-[#101624] dark:bg-white text-white dark:text-[#101624] text-xs font-bold hover:scale-105 transition-all cursor-pointer"
                 >
-                  <span className="cs-shimmer absolute inset-0" />
-                  <Sparkles className="w-3.5 h-3.5 text-[#ff5a1f] relative z-10" />
-                  <span className="relative z-10">Find exact matches for ₹{budgetLakh.toFixed(1)} Lakhs</span>
-                  <ArrowRight className="w-3.5 h-3.5 relative z-10" />
+                  {step < 3 ? 'Next' : step === 3 ? 'Show my shortlist' : 'Open Full AI Finder'}
                 </button>
               </div>
             </div>
-
-            {/* Right: Live car preview carousel */}
-            <div className="cs-reveal space-y-4" style={{ '--d': '0.25s' } as React.CSSProperties}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="cs-font-display font-bold text-sm text-slate-900 dark:text-white">
-                    {previewCars.length} cars in this range
-                  </h3>
-                  <p className="text-xs text-slate-500">Updated as you move the slider</p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setCarouselIdx(Math.max(0, carouselIdx - 3))}
-                    disabled={!canPrev}
-                    className="p-1.5 rounded-full bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-30 hover:border-[#ff5a1f]/50 transition-all cursor-pointer"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setCarouselIdx(Math.min(previewCars.length - 3, carouselIdx + 3))}
-                    disabled={!canNext}
-                    className="p-1.5 rounded-full bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-30 hover:border-[#ff5a1f]/50 transition-all cursor-pointer"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={onExploreCars}
-                    className="text-[11px] font-semibold text-[#ff5a1f] hover:underline flex items-center gap-0.5 cursor-pointer ml-1"
-                  >
-                    View all <ArrowUpRight className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Car Cards */}
-              <div ref={carouselRef} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {visibleCars.length > 0 ? visibleCars.map((car) => (
-                  <div
-                    key={car.id}
-                    onClick={() => onViewCarDetails(car)}
-                    className="card-hover group rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md overflow-hidden hover:border-[#ff5a1f]/40 cursor-pointer"
-                  >
-                    <div className="w-full h-28 overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
-                      <CarImage
-                        src={car.image}
-                        alt={car.name}
-                        brand={car.brand}
-                        model={car.model}
-                        bodyType={car.bodyType}
-                        isEV={car.fuelTypes?.includes('Electric')}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      {car.fuelTypes?.includes('Electric') && (
-                        <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/30 text-cyan-400 text-[9px] font-bold flex items-center gap-0.5">
-                          <Zap className="w-2.5 h-2.5" />EV
-                        </span>
-                      )}
-                      {(car.safety?.ratingStars ?? 0) >= 5 && (
-                        <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-400 text-[9px] font-bold flex items-center gap-0.5">
-                          <Star className="w-2.5 h-2.5" />5★
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <div className="text-[10px] font-bold text-[#ff5a1f] uppercase tracking-wide">{car.brand}</div>
-                      <div className="text-sm font-bold text-slate-900 dark:text-white truncate leading-tight">{car.model}</div>
-                      <div className="cs-font-display text-xs font-black text-slate-700 dark:text-slate-200 mt-1">
-                        ₹{car.priceMinLakh}L – {car.priceMaxLakh}L
-                      </div>
-                      <div className="flex items-center gap-2 mt-1.5 text-[10px] text-slate-500">
-                        <span>{car.bodyType}</span>
-                        <span>·</span>
-                        <span>{car.specs?.mileageKmPerLitreOrKWh} km/l</span>
-                      </div>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="col-span-3 py-10 text-center text-sm text-slate-400">
-                    Adjust the budget slider to see matching cars
-                  </div>
-                )}
-              </div>
-
-              {/* Pagination dots */}
-              {previewCars.length > 3 && (
-                <div className="flex items-center justify-center gap-1.5 pt-1">
-                  {Array.from({ length: Math.ceil(previewCars.length / 3) }).map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCarouselIdx(i * 3)}
-                      className={`rounded-full transition-all cursor-pointer ${
-                        Math.floor(carouselIdx / 3) === i
-                          ? 'w-5 h-2 bg-[#ff5a1f]'
-                          : 'w-2 h-2 bg-slate-300 dark:bg-slate-700 hover:bg-[#ff5a1f]/50'
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </section>
 
-        {/* ─────────────── SECTION 5: HOW IT WORKS ─────────────── */}
-        <section className="px-[5vw] py-[10vh] max-w-7xl mx-auto">
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#ff5a1f] mb-3">
-              <Sparkles className="w-4 h-4" />
-              <span>How it works</span>
-            </div>
-            <h2 className="cs-reveal cs-font-display font-extrabold text-[clamp(1.6rem,3.5vw,2.6rem)] text-slate-900 dark:text-slate-100">
-              From question to shortlist in 60 seconds
+        {/* ── SECTION 7: 5-YEAR OWNERSHIP STUDIO (#own) ── */}
+        <section id="own" className="min-h-screen px-[5vw] py-[14vh] flex flex-col justify-center">
+          <div className="max-w-2xl">
+            <h2 className="cs-rv cs-font-display font-extrabold text-[clamp(1.8rem,4vw,3.2rem)] leading-tight text-[#101624] dark:text-[#eef2fb] mb-3">
+              Know the real cost before you sign.
             </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-            {/* Connector line */}
-            <div className="hidden md:block absolute top-10 left-[calc(33%-16px)] right-[calc(33%-16px)] h-px bg-gradient-to-r from-transparent via-[#ff5a1f]/30 to-transparent" />
-
-            {[
-              { step: '01', icon: Sliders, title: 'Set your parameters', desc: 'Budget, body type, fuel preference, road conditions and family size.' },
-              { step: '02', icon: Sparkles, title: 'AI runs the numbers', desc: 'We score 200+ models on 40+ parameters: price, safety, mileage, TCO.' },
-              { step: '03', icon: Trophy, title: 'Pick your shortlist', desc: 'Compare side-by-side, check on-road prices by state and book a test drive.' }
-            ].map((item, i) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={i}
-                  className="cs-reveal flex flex-col items-center text-center p-6 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 relative"
-                  style={{ '--d': `${i * 0.12}s` } as React.CSSProperties}
-                >
-                  <div className="cs-font-display text-[10px] font-black text-[#ff5a1f] tracking-widest mb-3">{item.step}</div>
-                  <div className="w-12 h-12 rounded-2xl bg-[#ff5a1f]/10 flex items-center justify-center mb-4 cs-float" style={{ animationDelay: `${i * 0.4}s` }}>
-                    <Icon className="w-6 h-6 text-[#ff5a1f]" />
-                  </div>
-                  <h3 className="cs-font-display font-bold text-sm text-slate-900 dark:text-white mb-2">{item.title}</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{item.desc}</p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ─────────────── SECTION 6: FINAL CTA ─────────────── */}
-        <section id="go" className="min-h-[70svh] px-[5vw] py-[12vh] flex flex-col justify-center items-center text-center max-w-4xl mx-auto">
-          <div className="cs-reveal relative max-w-2xl">
-            {/* Decorative ring */}
-            <div className="cs-spin absolute -inset-20 rounded-full border border-dashed border-[#ff5a1f]/10 pointer-events-none" />
-
-            <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#ff5a1f]/12 border border-[#ff5a1f]/25 text-xs font-bold text-[#ff5a1f] uppercase tracking-wider mb-5">
-              <Star className="w-3.5 h-3.5" />
-              Ready to upgrade?
-            </span>
-
-            <h2 className="cs-font-display font-extrabold text-[clamp(2rem,5vw,4rem)] leading-[1.08] text-slate-900 dark:text-slate-100 mb-5">
-              Your next car is<br />one question away.
-            </h2>
-
-            <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 max-w-xl mx-auto mb-8">
-              Built around Indian roads, Indian price brackets and Indian families.
-              Zero dealer bias. Zero sponsored results.
+            <p className="cs-rv text-sm md:text-base text-[#556078] dark:text-[#9aa6c0] leading-relaxed mb-8">
+              The sticker price is only the start. The 5-year ownership studio adds up what a car costs after you drive it home, so a cheaper car does not turn out dearer.
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-4 mb-10">
+            <div className="border-t border-[#101624]/12 dark:border-white/12">
+              {OWNERSHIP_COSTS.map((cost, i) => (
+                <div
+                  key={i}
+                  className="cs-r2 cs-rv grid grid-cols-1 md:grid-cols-[1fr_1.4fr] gap-2 md:gap-6 py-5 px-3 border-b border-[#101624]/12 dark:border-white/12 transition-all cursor-pointer rounded-xl"
+                  style={{ '--d': `${i * 0.08}s` } as React.CSSProperties}
+                  onClick={onExploreCars}
+                >
+                  <h3 className="cs-font-display font-bold text-sm md:text-base text-[#101624] dark:text-[#eef2fb]">
+                    {cost.title}
+                  </h3>
+                  <p className="text-xs text-[#556078] dark:text-[#9aa6c0] leading-relaxed">
+                    {cost.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 8: FAQ ACCORDION (#faq) ── */}
+        <section id="faq" className="min-h-screen px-[5vw] py-[14vh] flex flex-col justify-center">
+          <div className="max-w-3xl">
+            <h2 className="cs-rv cs-font-display font-extrabold text-[clamp(1.8rem,4vw,3.2rem)] leading-tight text-[#101624] dark:text-[#eef2fb] mb-8">
+              Questions buyers ask first.
+            </h2>
+
+            <div className="cs-rv p-6 md:p-8 rounded-3xl border border-[#101624]/16 dark:border-white/16 bg-white/70 dark:bg-[#0e162a]/70 backdrop-blur-xl shadow-lg">
+              {FAQS.map((faq, i) => (
+                <details
+                  key={i}
+                  className="py-4 border-b last:border-b-0 border-[#101624]/12 dark:border-white/12 group cursor-pointer"
+                >
+                  <summary className="flex items-center justify-between gap-4 cs-font-display font-bold text-sm md:text-base text-[#101624] dark:text-[#eef2fb] list-none select-none">
+                    <span>{faq.q}</span>
+                    <span className="text-[#ff5a1f] font-normal text-lg transition-transform group-open:rotate-45">
+                      +
+                    </span>
+                  </summary>
+                  <p className="text-xs md:text-sm text-[#556078] dark:text-[#9aa6c0] leading-relaxed mt-3">
+                    {faq.a}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 9: FINAL CTA (#go) ── */}
+        <section id="go" className="min-h-[70vh] px-[5vw] py-[14vh] flex flex-col justify-center items-center text-center max-w-4xl mx-auto">
+          <div className="cs-rv">
+            <h2 className="cs-font-display font-extrabold text-[clamp(2rem,5vw,4.4rem)] leading-tight text-[#101624] dark:text-[#eef2fb] mb-4">
+              Your next car is one question away.
+            </h2>
+            <p className="text-sm md:text-base text-[#556078] dark:text-[#9aa6c0] max-w-xl mx-auto mb-8">
+              Compare cars side by side, see five years of ownership cost, and save your shortlist to your account.
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
               <button
                 onClick={onStartFinder}
-                className="btn-glow inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-[#101624] dark:bg-[#eef2fb] text-white dark:text-[#101624] font-bold text-sm hover:scale-105 transition-all shadow-xl shadow-[#ff5a1f]/15 cursor-pointer relative overflow-hidden"
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#ff5a1f] text-white font-bold text-sm hover:scale-105 hover:shadow-[0_12px_32px_-6px_#ff5a1f] transition-all cursor-pointer"
               >
-                <span className="cs-shimmer absolute inset-0" />
-                <Sparkles className="w-4 h-4 text-[#ff5a1f] relative z-10" />
-                <span className="relative z-10">Launch CarSuggest AI</span>
-                <ArrowRight className="w-4 h-4 relative z-10" />
+                <Sparkles className="w-4 h-4" />
+                Launch CarSuggest AI
               </button>
-
               <button
                 onClick={onExploreCars}
-                className="inline-flex items-center gap-2 px-7 py-4 rounded-full bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-sm hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-[#101624]/16 dark:border-white/16 bg-white/70 dark:bg-slate-900/70 font-semibold text-sm hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer"
               >
-                <span>Browse All Cars</span>
+                Browse 200+ Cars
               </button>
-
-              <a
-                href="#top"
-                className="inline-flex items-center gap-1.5 px-5 py-4 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium text-sm transition-all"
-              >
-                <span>Back to top</span>
-                <ArrowUpRight className="w-4 h-4" />
-              </a>
-            </div>
-
-            {/* Trust footer line */}
-            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400">
-              {['No registration required', 'No dealer commissions', '100% free to use'].map((t, i) => (
-                <span key={i} className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                  {t}
-                </span>
-              ))}
             </div>
           </div>
         </section>
       </main>
 
-      {/* Landing page footer */}
-      <footer className="relative z-10 py-8 px-[5vw] text-center border-t border-slate-200/80 dark:border-slate-800/80 text-xs text-slate-400">
-        <p>© 2026 CarSuggest. Made for Indian roads with precision automotive intelligence.</p>
-      </footer>
+      {/* ── FLOATING 3D CAR SWITCHER (.cs) ── */}
+      <div
+        className="fixed left-5 bottom-6 z-30 flex items-center gap-1 p-1.5 rounded-full border border-[#101624]/16 dark:border-white/16 bg-white/80 dark:bg-[#0e162a]/80 backdrop-blur-xl shadow-xl text-xs font-semibold"
+        role="group"
+        aria-label="Choose the car on the page"
+      >
+        {[
+          { idx: 0, label: 'Toyota Fortuner' },
+          { idx: 1, label: 'Hyundai Creta' },
+          { idx: 2, label: 'VW Polo' }
+        ].map((carOpt) => (
+          <button
+            key={carOpt.idx}
+            type="button"
+            onClick={() => setSelectedCar3D(carOpt.idx)}
+            className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
+              selectedCar3D === carOpt.idx
+                ? 'bg-[#ff5a1f] text-white shadow-sm'
+                : 'text-[#556078] dark:text-[#9aa6c0] hover:text-[#101624] dark:hover:text-white'
+            }`}
+          >
+            {carOpt.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
