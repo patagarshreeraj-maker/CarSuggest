@@ -137,8 +137,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onExploreCars,
   onViewCarDetails,
 }) => {
-  // 3D Car selection: 0: Fortuner, 1: Creta, 2: Polo
-  const [selectedCar3D, setSelectedCar3D] = useState<number>(0);
+  // 3D Car selection: 0: Fortuner, 1: Creta, 2: Polo, 3: All 3 Models
+  const [selectedCar3D, setSelectedCar3D] = useState<number>(3);
 
   // In-page mini wizard state
   const [step, setStep] = useState<number>(0);
@@ -760,6 +760,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         aria-label="Choose the car on the page"
       >
         {[
+          { idx: 3, label: 'All 3 Models' },
           { idx: 0, label: 'Toyota Fortuner' },
           { idx: 1, label: 'Hyundai Creta' },
           { idx: 2, label: 'VW Polo' }
