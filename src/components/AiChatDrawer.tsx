@@ -1,17 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Sparkles, 
-  X, 
-  Send, 
-  Bot, 
-  User, 
-  ArrowRight, 
-  RotateCcw,
-  ShieldCheck,
-  Zap,
-  CheckCircle2,
-  ChevronDown
-} from 'lucide-react';
+import { Sparkles, X, Send, Bot, User } from 'lucide-react';
 import { ChatMessage, Car } from '../types';
 
 interface AiChatDrawerProps {
@@ -26,14 +14,13 @@ export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({
   isOpen,
   onClose,
   allCars,
-  initialPrompt,
-  onViewCarDetails
+  initialPrompt
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      content: "Hello! I'm DriveAI, your automotive advisor. Ask me anything about car comparisons, real-world mileage, 5-star safety ratings, or 5-year ownership costs in India.",
+      content: "Hello! I'm CarSuggest AI, your automotive advisor. Ask me anything about car comparisons, real-world mileage, 5-star safety ratings, or 5-year ownership costs in India.",
       timestamp: new Date()
     }
   ]);
@@ -95,7 +82,7 @@ export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({
       }
 
       const data = await res.json();
-      
+
       const assistantMsg: ChatMessage = {
         id: String(Date.now() + 1),
         role: 'assistant',
@@ -126,32 +113,37 @@ Would you like me to compare specific trims or calculate exact 5-year loan EMIs 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] bg-white border-l border-slate-200 shadow-2xl flex flex-col justify-between">
+    <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[460px] flex flex-col justify-between bg-[#f8fafc] dark:bg-[#0b1120] border-l border-[#101624]/10 dark:border-white/10 shadow-[-24px_0_60px_-24px_rgba(16,22,36,0.45)] text-[#101624] dark:text-[#eef2fb] font-['Hanken_Grotesk',system-ui,sans-serif] overflow-hidden">
       {/* Top Header */}
-      <div className="p-4 border-b border-slate-200 bg-white flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-slate-900 font-['Manrope'] flex items-center gap-1.5">
-              DriveAI Consultant
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+      <div className="shrink-0 px-4 py-3.5 border-b border-[#101624]/10 dark:border-white/10 bg-white/85 dark:bg-[#0e1424]/85 backdrop-blur">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-[#ff5a1f]/12 dark:bg-[#ff5a1f]/20 border border-[#ff5a1f]/30 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-[#ff5a1f]" />
             </div>
-            <div className="text-[10px] text-slate-500">Powered by Gemini 2.5 Flash</div>
+            <div className="min-w-0">
+              <div className="font-['Unbounded',sans-serif] text-[13px] font-bold tracking-tight flex items-center gap-2 truncate">
+                CarSuggest AI
+                <span className="w-1.5 h-1.5 rounded-full bg-[#ff5a1f] animate-pulse shrink-0" />
+              </div>
+              <div className="text-[10px] text-[#556078] dark:text-[#9aa6c0] tracking-wide">
+                Verified Indian market specs
+              </div>
+            </div>
           </div>
-        </div>
 
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
-        >
-          <X className="w-5 h-5" />
-        </button>
+          <button
+            onClick={onClose}
+            aria-label="Close chat"
+            className="p-1.5 rounded-lg text-[#556078] dark:text-[#9aa6c0] hover:text-[#101624] dark:hover:text-white hover:bg-[#101624]/5 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Messages Thread */}
-      <div className="p-4 overflow-y-auto flex-1 space-y-4">
+      <div className="px-4 py-4 overflow-y-auto flex-1 space-y-4">
         {messages.map((msg) => {
           const isUser = msg.role === 'user';
           return (
@@ -160,27 +152,33 @@ Would you like me to compare specific trims or calculate exact 5-year loan EMIs 
               className={`flex gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}
             >
               {!isUser && (
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                  <Bot className="w-4 h-4 text-emerald-600" />
+                <div className="w-7 h-7 rounded-lg bg-[#ff5a1f]/12 dark:bg-[#ff5a1f]/20 border border-[#ff5a1f]/25 flex items-center justify-center shrink-0 mt-0.5">
+                  <Bot className="w-3.5 h-3.5 text-[#ff5a1f]" />
                 </div>
               )}
 
               <div
-                className={`max-w-[85%] p-3.5 rounded-2xl text-xs leading-relaxed ${
+                className={`max-w-[85%] px-3.5 py-3 rounded-2xl text-[12.5px] leading-relaxed ${
                   isUser
-                    ? 'bg-emerald-500 text-black font-semibold rounded-br-none shadow-md'
-                    : 'bg-emerald-500/10 border border-emerald-500/20 text-slate-800 rounded-bl-none shadow-sm'
+                    ? 'bg-[#101624] dark:bg-[#eef2fb] text-white dark:text-[#101624] font-medium rounded-br-md shadow-sm'
+                    : 'bg-white dark:bg-white/[0.06] border border-[#101624]/10 dark:border-white/10 text-[#101624] dark:text-[#eef2fb] rounded-bl-md shadow-sm'
                 }`}
               >
                 <div className="whitespace-pre-wrap">{msg.content}</div>
-                <div className={`text-[9px] mt-1.5 ${isUser ? 'text-black/60' : 'text-slate-500'}`}>
+                <div
+                  className={`text-[9px] mt-1.5 tracking-wide ${
+                    isUser
+                      ? 'text-white/55 dark:text-[#101624]/55'
+                      : 'text-[#556078] dark:text-[#9aa6c0]'
+                  }`}
+                >
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
 
               {isUser && (
-                <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">
-                  <User className="w-4 h-4 text-slate-600" />
+                <div className="w-7 h-7 rounded-lg bg-[#101624] dark:bg-[#eef2fb] flex items-center justify-center shrink-0 mt-0.5">
+                  <User className="w-3.5 h-3.5 text-white dark:text-[#101624]" />
                 </div>
               )}
             </div>
@@ -188,15 +186,15 @@ Would you like me to compare specific trims or calculate exact 5-year loan EMIs 
         })}
 
         {isTyping && (
-          <div className="flex gap-2.5 items-center text-xs text-slate-500">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-              <Bot className="w-4 h-4 text-emerald-600 animate-spin" />
+          <div className="flex gap-2.5 items-start">
+            <div className="w-7 h-7 rounded-lg bg-[#ff5a1f]/12 dark:bg-[#ff5a1f]/20 flex items-center justify-center shrink-0">
+              <Bot className="w-3.5 h-3.5 text-[#ff5a1f] animate-spin" />
             </div>
-            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-              <span className="text-[11px] text-slate-500 ml-1">Consulting car database...</span>
+            <div className="px-3.5 py-3 rounded-2xl rounded-bl-md bg-white dark:bg-white/[0.06] border border-[#101624]/10 dark:border-white/10 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#ff5a1f] animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#ff5a1f] animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#ff5a1f] animate-bounce" style={{ animationDelay: '300ms' }} />
+              <span className="text-[11px] text-[#556078] dark:text-[#9aa6c0] ml-1">Consulting car database...</span>
             </div>
           </div>
         )}
@@ -206,14 +204,16 @@ Would you like me to compare specific trims or calculate exact 5-year loan EMIs 
 
       {/* Suggested Starter Prompts (if few messages) */}
       {messages.length <= 2 && (
-        <div className="p-3 border-t border-slate-200 bg-white/40 space-y-1.5">
-          <div className="text-[10px] font-bold text-slate-500 uppercase">Suggested Inquiries</div>
-          <div className="flex flex-col gap-1">
+        <div className="shrink-0 px-3.5 py-3 border-t border-[#101624]/10 dark:border-white/10 space-y-1.5">
+          <div className="font-['Unbounded',sans-serif] text-[9px] font-bold text-[#556078] dark:text-[#9aa6c0] uppercase tracking-[0.16em]">
+            Suggested inquiries
+          </div>
+          <div className="flex flex-col gap-1.5">
             {sampleQuestions.slice(0, 2).map((q, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSendMessage(q)}
-                className="text-left text-[11px] text-slate-600 hover:text-emerald-600 bg-white hover:bg-slate-100 p-2 rounded-xl border border-slate-200 transition-all truncate"
+                className="text-left text-[11px] text-[#101624] dark:text-[#eef2fb] bg-white dark:bg-white/[0.06] hover:bg-[#ff5a1f]/10 dark:hover:bg-[#ff5a1f]/15 hover:border-[#ff5a1f]/40 hover:text-[#ff5a1f] p-2.5 rounded-xl border border-[#101624]/10 dark:border-white/10 transition-colors truncate cursor-pointer"
               >
                 "{q}"
               </button>
@@ -223,7 +223,7 @@ Would you like me to compare specific trims or calculate exact 5-year loan EMIs 
       )}
 
       {/* Message Input Box */}
-      <div className="p-3.5 border-t border-slate-200 bg-white">
+      <div className="shrink-0 p-3.5 border-t border-[#101624]/10 dark:border-white/10 bg-white/85 dark:bg-[#0e1424]/85 backdrop-blur">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -236,15 +236,16 @@ Would you like me to compare specific trims or calculate exact 5-year loan EMIs 
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="Ask about mileage, safety, EMI, variants..."
-            className="flex-1 bg-white border border-slate-200 focus:border-emerald-500/50 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-500 focus:outline-none"
+            className="flex-1 min-w-0 bg-[#f8fafc] dark:bg-white/[0.06] border border-[#101624]/12 dark:border-white/12 focus:border-[#ff5a1f]/60 dark:focus:border-[#ff5a1f]/60 rounded-full px-4 py-2.5 text-xs text-[#101624] dark:text-white placeholder-[#556078] dark:placeholder-[#9aa6c0] focus:outline-none transition-colors"
           />
           <button
             type="submit"
             disabled={!inputText.trim() || isTyping}
-            className={`p-2.5 rounded-xl font-bold transition-all cursor-pointer ${
+            aria-label="Send message"
+            className={`p-2.5 rounded-full transition-all ${
               inputText.trim() && !isTyping
-                ? 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-md shadow-emerald-500/20'
-                : 'bg-slate-50 text-slate-500 cursor-not-allowed'
+                ? 'bg-[#ff5a1f] text-white hover:bg-[#e64a12] shadow-lg shadow-[#ff5a1f]/25 cursor-pointer'
+                : 'bg-[#101624]/8 dark:bg-white/10 text-[#556078] dark:text-[#9aa6c0] cursor-not-allowed'
             }`}
           >
             <Send className="w-4 h-4" />

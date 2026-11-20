@@ -12,8 +12,7 @@ import {
   ArrowRight, 
   TrendingUp, 
   MessageSquare, 
-  Award,
-  Zap
+  Award
 } from 'lucide-react';
 import { ScoredCar, UserPreferences, AIRecommendationResponse } from '../types';
 import { CarImage } from './CarImage';

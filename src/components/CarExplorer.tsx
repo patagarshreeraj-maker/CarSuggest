@@ -8,26 +8,22 @@ import {
   ShieldCheck, 
   Zap, 
   X, 
-  Sparkles,
-  Fuel,
-  Gauge,
-  Users,
-  Award,
-  ArrowUpDown,
-  RotateCcw,
-  Check,
-  Flame,
-  Sun,
-  Fan,
-  Camera,
-  Car as CarIcon,
-  Heart,
-  ArrowLeftRight,
-  Eye,
-  ChevronRight,
-  BatteryCharging
+  Sparkles, 
+  Fuel, 
+  Users, 
+  RotateCcw, 
+  Check, 
+  Sun, 
+  Fan, 
+  Camera, 
+  Car as CarIcon, 
+  Heart, 
+  ArrowLeftRight, 
+  Eye, 
+  ChevronRight, 
+  BatteryCharging 
 } from 'lucide-react';
-import { Car, BodyType, FuelType, MatchScoreBreakdown } from '../types';
+import { Car, FuelType, MatchScoreBreakdown } from '../types';
 import { CarCard } from './CarCard';
 import { CarImage } from './CarImage';
 

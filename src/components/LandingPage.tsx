@@ -9,7 +9,6 @@ import {
   Sliders,
   Check,
   Zap,
-  Users,
   Map,
   Star,
   TrendingUp,
@@ -17,8 +16,7 @@ import {
   Car as CarIcon,
   Timer,
   Trophy,
-  ChevronLeft,
-  MousePointer2,
+  ChevronLeft
 } from 'lucide-react';
 import { Car } from '../types';
 import { InteractiveCar3D } from './InteractiveCar3D';
@@ -26,13 +24,9 @@ import { CarImage } from './CarImage';
 
 export interface LandingPageProps {
   cars: Car[];
-  favoriteCarIds: string[];
-  comparedCarIds: string[];
   onStartFinder: () => void;
   onExploreCars: () => void;
   onViewCarDetails: (car: Car) => void;
-  onToggleFavorite: (car: Car) => void;
-  onToggleCompare: (car: Car) => void;
 }
 
 const CATEGORIES = [
@@ -344,6 +338,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <div className="relative min-h-screen bg-[#f8fafc] dark:bg-[#0a1020] text-[#101624] dark:text-[#eef2fb] font-['Hanken_Grotesk',sans-serif] selection:bg-[#ff5a1f]/20 selection:text-[#ff5a1f] overflow-x-hidden">
+      {/* Scroll progress bar – fixed top */}
+      <div
+        className="fixed top-0 left-0 h-[3px] z-50 transition-all duration-100 rounded-r-full"
+        style={{
+          width: `${scrollProgress}%`,
+          background: 'linear-gradient(90deg, #ff5a1f, #ff9a5f)',
+          boxShadow: '0 0 8px rgba(255,90,31,0.6)',
+        }}
+      />
+
+      {/* Drag-to-rotate hint on canvas */}
+      {showDragHint && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-[#101624]/70 dark:bg-black/60 backdrop-blur-md text-white text-xs font-semibold animate-bounce pointer-events-none">
+          <span>🖱️</span>
+          <span>Drag to rotate the car · Scroll to explore</span>
+        </div>
+      )}
+
       {/* Scoped Styles */}
       <style>{`
         .cs-font-display { font-family: 'Unbounded', sans-serif; }

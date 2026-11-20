@@ -3,7 +3,6 @@ import {
   X, 
   ShieldCheck, 
   Fuel, 
-  Zap, 
   ArrowLeftRight, 
   Heart, 
   CheckCircle2, 
@@ -12,12 +11,8 @@ import {
   MessageSquare, 
   ChevronRight,
   ChevronLeft,
-  Gauge,
   Sparkles,
   Users,
-  Award,
-  Layers,
-  Wrench,
   Camera
 } from 'lucide-react';
 import { Car } from '../types';

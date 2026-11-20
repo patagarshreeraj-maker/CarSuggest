@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calculator } from 'lucide-react';
+import { X } from 'lucide-react';
 import { EmiCalculatorWidget } from './EmiCalculatorWidget';
 
 interface EmiModalProps {

@@ -2,13 +2,8 @@ import React, { useState, useMemo } from 'react';
 import {
   Zap,
   Fuel,
-  TrendingDown,
   Sparkles,
-  Calendar,
   CheckCircle2,
-  Gauge,
-  ArrowRight,
-  ShieldAlert,
   Sliders
 } from 'lucide-react';
 

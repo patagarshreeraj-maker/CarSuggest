@@ -485,13 +485,9 @@ export default function App() {
         {activeTab === 'discover' && (
           <LandingPage
             cars={CARS_DATASET}
-            favoriteCarIds={favoriteCars.map((c) => c.id)}
-            comparedCarIds={comparedCars.map((c) => c.id)}
             onStartFinder={() => setIsFinderOpen(true)}
             onExploreCars={() => setActiveTab('explore')}
             onViewCarDetails={(car) => setSelectedCarForDetails(car)}
-            onToggleFavorite={handleToggleFavorite}
-            onToggleCompare={handleToggleCompare}
           />
         )}
 

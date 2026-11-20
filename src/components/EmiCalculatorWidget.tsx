@@ -1,16 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import {
   Calculator,
-  Percent,
   Calendar,
-  Building2,
-  TrendingDown,
-  Info,
   ChevronDown,
   ChevronUp,
   Sparkles,
-  CheckCircle2,
-  AlertCircle
+  CheckCircle2
 } from 'lucide-react';
 
 interface EmiCalculatorWidgetProps {

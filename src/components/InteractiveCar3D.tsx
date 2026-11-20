@@ -212,7 +212,9 @@ export const InteractiveCar3D: React.FC<InteractiveCar3DProps> = ({
     [0.62, -0.62].forEach(zPos => {
       // Headlight housing
       const hGeom = new THREE.BoxGeometry(0.11, 0.15, 0.48);
-      carGroup.add(Object.assign(new THREE.Mesh(hGeom, basicMat(0xffffff)), { position: new THREE.Vector3(2.17, 0.79, zPos) }));
+      const housing = new THREE.Mesh(hGeom, basicMat(0xffffff));
+      housing.position.set(2.17, 0.79, zPos);
+      carGroup.add(housing);
 
       // DRL strip
       const drlGeom = new THREE.BoxGeometry(0.05, 0.03, 0.44);
@@ -243,7 +245,9 @@ export const InteractiveCar3D: React.FC<InteractiveCar3DProps> = ({
 
     // Connecting center tail strip
     const stripGeom = new THREE.BoxGeometry(0.06, 0.07, 1.6);
-    carGroup.add(Object.assign(new THREE.Mesh(stripGeom, tailMat), { position: new THREE.Vector3(-2.2, 0.82, 0) }));
+    const tailStrip = new THREE.Mesh(stripGeom, tailMat);
+    tailStrip.position.set(-2.2, 0.82, 0);
+    carGroup.add(tailStrip);
 
     // ── Neon ground ring ──────────────────────────────────────
     const ringGeom = new THREE.RingGeometry(2.75, 2.88, 128);

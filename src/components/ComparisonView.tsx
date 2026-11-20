@@ -2,18 +2,14 @@ import React, { useState } from 'react';
 import { 
   ArrowLeftRight, 
   Sparkles, 
-  ShieldCheck, 
   Fuel, 
-  Zap, 
   Trash2, 
   Plus, 
   Check, 
   X, 
-  Award,
-  TrendingUp,
-  MessageSquare,
-  Share2,
-  Copy
+  MessageSquare, 
+  Share2, 
+  Copy 
 } from 'lucide-react';
 import { Car, AIComparisonResponse } from '../types';
 import { calculateOwnershipCost } from '../lib/ownershipCalculator';

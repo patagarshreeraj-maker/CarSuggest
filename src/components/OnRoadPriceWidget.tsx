@@ -2,14 +2,9 @@ import React, { useState, useMemo } from 'react';
 import {
   MapPin,
   Sparkles,
-  Info,
-  ShieldCheck,
   CheckCircle2,
-  TrendingDown,
-  Building2,
   Fuel,
-  Zap,
-  ArrowRight
+  Zap
 } from 'lucide-react';
 import { INDIAN_STATES, calculateOnRoadPrice, OnRoadPriceBreakdown } from '../lib/onRoadPriceCalculator';
 
