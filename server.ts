@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
@@ -462,7 +463,18 @@ Would you like to compare specific variants or calculate monthly loan EMIs?`,
     }
   });
 
-  // Vite middleware setup
+  // Serve the 3D landing page at root and /landing
+  app.get(['/', '/landing'], (req, res) => {
+    const distLanding = path.join(process.cwd(), 'dist', 'landing.html');
+    const publicLanding = path.join(process.cwd(), 'public', 'landing.html');
+    if (fs.existsSync(distLanding)) {
+      res.sendFile(distLanding);
+    } else {
+      res.sendFile(publicLanding);
+    }
+  });
+
+  // Vite middleware setup (React app served under /app and all other non-API routes)
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
