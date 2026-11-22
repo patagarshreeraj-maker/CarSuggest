@@ -467,7 +467,7 @@ Would you like to compare specific variants or calculate monthly loan EMIs?`,
   app.get(['/', '/landing'], (req, res) => {
     const distLanding = path.join(process.cwd(), 'dist', 'landing.html');
     const publicLanding = path.join(process.cwd(), 'public', 'landing.html');
-    if (fs.existsSync(distLanding)) {
+    if (process.env.NODE_ENV === 'production' && fs.existsSync(distLanding)) {
       res.sendFile(distLanding);
     } else {
       res.sendFile(publicLanding);

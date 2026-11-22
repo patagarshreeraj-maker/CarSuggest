@@ -24,7 +24,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:9;display:flex;justify-content:s
 .btn:hover{transform:translateY(-3px) scale(1.04);box-shadow:0 14px 34px -8px var(--acc)}
 .btn.g{background:transparent;color:var(--fg);border-color:var(--bd)}
 :focus-visible{outline:3px solid var(--acc);outline-offset:3px}
-#hero{padding-top:26vh}
+#hero{padding-top:clamp(280px,36vh,420px);justify-content:flex-start}
 main :is(h1,h2,h3,p,li,summary,.sub,.cue){text-shadow:0 0 14px var(--bg),0 0 30px var(--bg)}
 section{min-height:100svh;padding:15vh 5vw 8vh;display:flex;flex-direction:column;justify-content:center}
 h1,h2{font-family:'Unbounded',sans-serif;font-weight:700;letter-spacing:-.04em;margin:0 0 .5em;line-height:1.02}
