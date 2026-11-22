@@ -64,8 +64,13 @@ h2{font-size:clamp(1.8rem,4.2vw,3.4rem)}
 @keyframes mq{to{transform:translateX(-50%)}}
 
 @media(min-width:900px){.fx,.try{margin-left:min(44%,560px)}.how,.own,.vs-sec{margin-right:min(44%,560px)}}
-.rv{opacity:0;clip-path:inset(0 100% 0 0)}
-.rv.in{opacity:1;clip-path:inset(-20px -20px -20px -20px);transition:clip-path 1.1s cubic-bezier(.7,0,.2,1) var(--d,0s),opacity .4s var(--d,0s),padding .4s,background .4s,transform .4s}
+.rv{opacity:0;transform:translateY(20px);transition:opacity .6s cubic-bezier(.2,.8,.2,1),transform .6s cubic-bezier(.2,.8,.2,1)}
+.rv.in{opacity:1;transform:none}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+#hero .sub{animation:fadeInUp .7s .35s ease both}
+#hero .qs{animation:fadeInUp .7s .5s ease both}
+#hero .pop{animation:fadeInUp .7s .65s ease both}
+
 
 .stats{position:relative;display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--bd);background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .stats>div{padding:28px 3vw;border-left:1px solid var(--bd);position:relative;transition:background-color .3s}
@@ -193,9 +198,9 @@ body.vwing{overflow:hidden}body.vwing main,body.vwing footer,body.vwing .nl,body
 <main id="top">
 <section id="hero"><div>
 <h1><span class="ln"><span style="--d:.25s">Find the right car</span></span><span class="ln"><span style="--d:.45s">for how you actually</span></span><span class="ln"><span style="--d:.65s">drive in India.</span></span></h1>
-<p class="sub rv" style="--d:1s">Cut through misleading brochure claims. CarSuggest evaluates 200+ Indian cars on real-world city mileage, true on-road state taxes, verified Bharat NCAP crash safety, and 5-year total cost of ownership.</p>
-<form class="qs rv" id="qs" style="--d:1.2s" role="search"><input id="qi" type="search" placeholder="Search by model, need, or budget (e.g. Creta, 7-seater, EV under 15L)" aria-label="Search cars"><button class="btn" type="submit">Search</button></form>
-<div class="pop rv" id="pop" style="--d:1.35s"><button class="chip" type="button" data-q="Automatic SUV under 15 Lakh">🚙 Automatic SUV under ₹15 Lakh</button><button class="chip" type="button" data-q="Family 7-Seater with 6 Airbags">🛡️ 7-Seater with 6 Airbags</button><button class="chip" type="button" data-q="Best City Mileage Hatchback">⛽ Best City Mileage 25+ km/l</button><button class="chip" type="button" data-q="EV with 400km Real Range">⚡ EV with 400km+ Real Range</button></div>
+<p class="sub">Cut through misleading brochure claims. CarSuggest evaluates 200+ Indian cars on real-world city mileage, true on-road state taxes, verified Bharat NCAP crash safety, and 5-year total cost of ownership.</p>
+<form class="qs" id="qs" role="search"><input id="qi" type="search" placeholder="Search by model, need, or budget (e.g. Creta, 7-seater, EV under 15L)" aria-label="Search cars"><button class="btn" type="submit">Search</button></form>
+<div class="pop" id="pop"><button class="chip" type="button" data-q="Automatic SUV under 15 Lakh">🚙 Automatic SUV under ₹15 Lakh</button><button class="chip" type="button" data-q="Family 7-Seater with 6 Airbags">🛡️ 7-Seater with 6 Airbags</button><button class="chip" type="button" data-q="Best City Mileage Hatchback">⛽ Best City Mileage 25+ km/l</button><button class="chip" type="button" data-q="EV with 400km Real Range">⚡ EV with 400km+ Real Range</button></div>
 <div class="row rv" style="--d:1.45s"><a class="btn" href="/app">Start AI Car Finder →</a><a class="btn g" href="/app">Explore 200+ Models</a><a class="btn g" href="#own">5-Year TCO Calculator</a></div>
 <div class="pop rv" id="seg" style="--d:1.55s" role="group" aria-label="See a segment in 3D"><button class="chip" type="button" data-i="3">Hatchback (Swift/Polo)</button><button class="chip" type="button" data-i="1">Compact SUV (Creta)</button><button class="chip on" type="button" data-i="0">Full-size SUV (Fortuner)</button><button class="chip" type="button" data-i="4">Urban CUV (Safari)</button></div>
 <div class="cue rv" style="--d:1.5s"><i></i>Scroll to drive through website</div>
