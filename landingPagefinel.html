@@ -24,7 +24,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:9;display:flex;justify-content:s
 .btn:hover{transform:translateY(-3px) scale(1.04);box-shadow:0 14px 34px -8px var(--acc)}
 .btn.g{background:transparent;color:var(--fg);border-color:var(--bd)}
 :focus-visible{outline:3px solid var(--acc);outline-offset:3px}
-#hero{padding-top:clamp(280px,36vh,420px);justify-content:flex-start}
+#hero{padding-top:clamp(340px,44vh,490px);justify-content:flex-start}
 main :is(h1,h2,h3,p,li,summary,.sub,.cue){text-shadow:0 0 14px var(--bg),0 0 30px var(--bg)}
 section{min-height:100svh;padding:15vh 5vw 8vh;display:flex;flex-direction:column;justify-content:center}
 h1,h2{font-family:'Unbounded',sans-serif;font-weight:700;letter-spacing:-.04em;margin:0 0 .5em;line-height:1.02}
@@ -280,7 +280,7 @@ const cl=(a,l,h)=>Math.min(Math.max(a,l),h),ss=a=>a*a*(3-2*a);
    PTS are the spots on screen (-1..1) where the car touches the ground; they are projected onto
    the ground plane, so the path keeps its shape on every screen size. */
 const CAM={h:4.2,d:12.5,ly:.2},CB=new THREE.PerspectiveCamera(38,1,.1,200),PL=new THREE.Plane(new THREE.Vector3(0,1,0),0),RR=new THREE.Raycaster(),q2=new THREE.Vector2();
-const PTS=[[-.67,.5],[-.34,.24],[-.04,-.04],[.1,-.3],[.08,-.6]];
+const PTS=[[-.67,.32],[-.34,.15],[-.04,-.04],[.1,-.3],[.08,-.6]];
 const crm=(a,b,c,d,t)=>.5*(2*b+(c-a)*t+(2*a-5*b+4*c-d)*t*t+(3*b-a-3*c+d)*t*t*t);
 const curve=u=>{const n=PTS.length-1,f=cl(u,0,1)*n,i=Math.min(Math.floor(f),n-1),t=f-i,P=j=>PTS[cl(j,0,n)];return[0,1].map(k=>crm(P(i-1)[k],P(i)[k],P(i+1)[k],P(i+2)[k],t))};
 let XS=1;
