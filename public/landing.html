@@ -42,7 +42,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:99;display:flex;justify-content:
 .btn.sm{padding:.45em 1.1em;font-size:.82rem}
 :focus-visible{outline:3px solid var(--acc);outline-offset:3px}
 
-#hero{padding-top:clamp(360px,46vh,520px);justify-content:flex-start}
+#hero{padding-top:clamp(400px,50vh,560px);justify-content:flex-start}
 main :is(h1,h2,h3,p,li,summary,.sub,.cue){text-shadow:0 0 14px var(--bg),0 0 30px var(--bg)}
 section{min-height:100svh;padding:15vh 5vw 8vh;display:flex;flex-direction:column;justify-content:center}
 h1,h2{font-family:'Unbounded',sans-serif;font-weight:700;letter-spacing:-.04em;margin:0 0 .5em;line-height:1.04}
@@ -819,7 +819,7 @@ const cl=(a,l,h)=>Math.min(Math.max(a,l),h),ss=a=>a*a*(3-2*a);
    PTS are the spots on screen (-1..1) where the car touches the ground; they are projected onto
    the ground plane, so the path keeps its shape on every screen size. */
 const CAM={h:4.2,d:12.5,ly:.2},CB=new THREE.PerspectiveCamera(38,1,.1,200),PL=new THREE.Plane(new THREE.Vector3(0,1,0),0),RR=new THREE.Raycaster(),q2=new THREE.Vector2();
-const PTS=[[-.52,-.02],[-.28,-.10],[-.04,-.18],[.10,-.36],[.08,-.60]];
+const PTS=[[-.54,.12],[-.28,.02],[-.04,-.10],[.10,-.28],[.08,-.58]];
 const crm=(a,b,c,d,t)=>.5*(2*b+(c-a)*t+(2*a-5*b+4*c-d)*t*t+(3*b-a-3*c+d)*t*t*t);
 const curve=u=>{const n=PTS.length-1,f=cl(u,0,1)*n,i=Math.min(Math.floor(f),n-1),t=f-i,P=j=>PTS[cl(j,0,n)];return[0,1].map(k=>crm(P(i-1)[k],P(i)[k],P(i+1)[k],P(i+2)[k],t))};
 let XS=1;
@@ -835,21 +835,21 @@ return RC.intersectObject(car,true).some(h=>{if(h.object.isSprite||h.object===sh
 addEventListener('click',e=>{if(e.target.closest&&e.target.closest(IA))return;if(String(getSelection()))return;if(onCar(e.clientX,e.clientY)){if(sel===3)swiftPaintT=swiftPaintT?0:1;else if(sel===4)setSafariPaint(({black:'gold',gold:'white',white:'black'})[safariPaintKind]);else if(sel<3||sel===5)paintT=paintT?0:1}});
 addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const n=performance.now();if(n-hvT<90)return;hvT=n;
 document.documentElement.style.cursor=!(e.target.closest&&e.target.closest(IA))&&onCar(e.clientX,e.clientY)?'pointer':''});
-let t0=performance.now(),born=t0,pS=prog(),pit=0,vs=0,ppx=null,ppz=0;
+let t0=performance.now(),born=t0,pS=prog(),pit=0,vs=0,ppx=null,ppz=0,sYaw=0;
 const W0=new THREE.Vector3(),W1=new THREE.Vector3(),W2=new THREE.Vector3();
 car.rotation.order='YZX';
 function frame(now){requestAnimationFrame(frame);
 const dt=Math.min((now-t0)/1000,.05)||.016;t0=now;
 const ie=reduce?1:1-Math.pow(1-Math.min((now-born)/2800,1),3);
 boost*=Math.exp(-dt*1.5);if(VIEW&&!vdrag&&!reduce)vyaw+=dt*.45;
-mx+=(tmx-mx)*.05;my+=(tmy-my)*.05;
+const mFact=1-Math.exp(-dt*4.5);mx+=(tmx-mx)*mFact;my+=(tmy-my)*mFact;
 /* scroll position -> place on the path (smoothed, so the car glides and coasts to a stop) */
 const pr=prog();
-pS+=(pr-pS)*(1-Math.exp(-dt*(reduce?9:4.5)));
+pS+=(pr-pS)*(1-Math.exp(-dt*(reduce?9:5.5)));
 const u0=cl(pS-.003,0,.994);spot(pS,W0);spot(u0,W1);spot(u0+.006,W2);
 /* the car faces the way the road bends; on the first drive-in it comes in straight from the left */
 const ar=innerWidth/innerHeight,dist=Math.hypot(W0.x-CB.position.x,CB.position.y,W0.z-CB.position.z);
-const yaw=VIEW?vyaw:Math.atan2(-(W2.z-W1.z),W2.x-W1.x)*ie,px=VIEW?0:W0.x-(1-ie)*(10+dist*1.2),pz=VIEW?0:W0.z;
+const tYaw=VIEW?vyaw:Math.atan2(-(W2.z-W1.z),W2.x-W1.x)*ie;if(Math.abs(tYaw-sYaw)>Math.PI)sYaw+=Math.sign(tYaw-sYaw)*2*Math.PI;sYaw+=(tYaw-sYaw)*(1-Math.exp(-dt*6.5));const yaw=sYaw,px=VIEW?0:W0.x-(1-ie)*(10+dist*1.2),pz=VIEW?0:W0.z;
 if(ppx===null){ppx=px;ppz=pz}
 const ds=(px-ppx)*Math.cos(yaw)-(pz-ppz)*Math.sin(yaw);ppx=px;ppz=pz;   /* signed distance driven along the car's heading this frame */
 const vp=ds/dt;vs+=(vp-vs)*.08;pit+=(cl((vp-vs)*.012,-.035,.035)-pit)*.1;
