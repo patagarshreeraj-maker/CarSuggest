@@ -669,7 +669,7 @@ const io=new IntersectionObserver(es=>es.forEach(x=>{
 }),{threshold:.12});
 document.querySelectorAll('.rv').forEach(e=>io.observe(e));
 
-let tmx=0,tmy=0,mx=0,my=0;
+let tmx=0,tmy=0,mx=0,my=0,boost=0;
 addEventListener('pointermove',e=>{tmx=e.clientX/innerWidth*2-1;tmy=e.clientY/innerHeight*2-1});
 
 try{

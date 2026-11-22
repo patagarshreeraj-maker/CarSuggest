@@ -477,7 +477,12 @@ Would you like to compare specific variants or calculate monthly loan EMIs?`,
   // Vite middleware setup (React app served under /app and all other non-API routes)
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        watch: {
+          ignored: ['**/3d car modules/**', '**/*.zip', '**/*.glb', '**/scratch/**', '**/.git/**']
+        }
+      },
       appType: 'spa'
     });
     app.use(vite.middlewares);
