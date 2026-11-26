@@ -8,24 +8,20 @@ import {
   ShieldCheck, 
   Zap, 
   X, 
-  Sparkles,
-  Fuel,
-  Gauge,
-  Users,
-  Award,
-  ArrowUpDown,
-  RotateCcw,
-  Check,
-  Flame,
-  Sun,
-  Fan,
-  Camera,
-  Car as CarIcon,
-  Heart,
-  ArrowLeftRight,
-  Eye,
-  ChevronRight,
-  BatteryCharging
+  Sparkles, 
+  Fuel, 
+  Users, 
+  RotateCcw, 
+  Check, 
+  Sun, 
+  Fan, 
+  Camera, 
+  Car as CarIcon, 
+  Heart, 
+  ArrowLeftRight, 
+  Eye, 
+  ChevronRight, 
+  BatteryCharging 
 } from 'lucide-react';
 import { Car, FuelType, MatchScoreBreakdown } from '../types';
 import { CarCard } from './CarCard';
@@ -348,15 +344,15 @@ export const CarExplorer: React.FC<CarExplorerProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#ff5a1f]/10 text-[#ff5a1f] border border-[#ff5a1f]/20">
               {cars.length} Verified Cars
             </span>
-            <span className="text-xs text-slate-500">• Indian Market 2024-2025</span>
+            <span className="text-xs text-[#556078] dark:text-[#9aa6c0]">• Indian Market 2025-2026</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Manrope'] mt-1">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#101624] dark:text-[#eef2fb] font-['Unbounded',sans-serif] mt-1 tracking-tight">
             Explore All Vehicles
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-[#556078] dark:text-[#9aa6c0] mt-0.5">
             Filter by fuel type, crash test safety rating, budget, seating, and compare real specs side-by-side.
           </p>
         </div>
@@ -364,18 +360,18 @@ export const CarExplorer: React.FC<CarExplorerProps> = ({
         {/* Search & AI Finder CTA */}
         <div className="flex items-center gap-2.5">
           <div className="relative flex-1 sm:w-72">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search Tata, Creta, Hybrid, SUV..."
-              className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+              className="w-full bg-white dark:bg-slate-900 border border-[#101624]/15 dark:border-white/15 rounded-full pl-9 pr-8 py-2 text-xs text-[#101624] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#ff5a1f] transition-colors"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 p-0.5 rounded-md hover:bg-slate-100 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-0.5 rounded-full cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -384,9 +380,9 @@ export const CarExplorer: React.FC<CarExplorerProps> = ({
 
           <button
             onClick={onOpenFinder}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 border border-emerald-400/40 text-emerald-600 font-semibold text-xs rounded-xl transition-all cursor-pointer shrink-0"
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#101624] dark:bg-[#eef2fb] hover:bg-black dark:hover:bg-white text-white dark:text-[#101624] font-bold text-xs rounded-full transition-all cursor-pointer shrink-0 shadow-sm hover:shadow-[0_8px_20px_-4px_#ff5a1f]"
           >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <Sparkles className="w-3.5 h-3.5 text-[#ff5a1f]" />
             <span className="hidden sm:inline">AI Match Finder</span>
           </button>
         </div>
@@ -396,13 +392,13 @@ export const CarExplorer: React.FC<CarExplorerProps> = ({
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         <button
           onClick={() => handlePresetSelect('all')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
             activePreset === 'all' && activeFiltersCount === 0
-              ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/20 font-bold'
-              : 'bg-white text-slate-600 hover:bg-[#F8FAFC] border border-slate-200'
+              ? 'bg-[#101624] text-white dark:bg-white dark:text-[#101624] shadow-sm font-bold'
+              : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-white border border-[#101624]/10 dark:border-white/10'
           }`}
         >
-          <CarIcon className="w-3.5 h-3.5" />
+          <CarIcon className="w-3.5 h-3.5 text-[#ff5a1f]" />
           <span>All Cars ({cars.length})</span>
         </button>
 

@@ -176,12 +176,3 @@ export interface ChatMessage {
   referencedCarIds?: string[];
 }
 
-export interface UserProfile {
-  id: string;
-  email?: string | null;
-  fullName?: string | null;
-  avatarUrl?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-}
-

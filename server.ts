@@ -1,11 +1,64 @@
 import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+dotenv.config({ path: '.env.local' });
 dotenv.config();
+
+// ─── Supabase Backend Client ──────────────────────────────────────
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+let supabase: SupabaseClient | null = null;
+function getSupabase(): SupabaseClient | null {
+  if (!supabase && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+    console.log('✅ Supabase connected');
+  }
+  return supabase;
+}
+
+function createAuthClient(): SupabaseClient | null {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+}
+
+interface AuthenticatedRequest extends Request {
+  authUser?: { id: string; email?: string; [key: string]: any };
+  authToken?: string;
+}
+
+async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  const sb = getSupabase();
+  if (!sb) return res.status(503).json({ error: 'Auth service not configured' });
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid Authorization header' });
+  }
+  const token = authHeader.slice(7);
+
+  try {
+    const { data, error } = await sb.auth.getUser(token);
+    if (error || !data.user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+    req.authUser = data.user;
+    req.authToken = token;
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Token verification failed' });
+  }
+}
 
 let aiClient: GoogleGenAI | null = null;
 function getGenAI(): GoogleGenAI | null {
@@ -30,7 +83,251 @@ async function startServer() {
 
   // 1. Health check
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', time: new Date().toISOString() });
+    res.json({ status: 'ok', supabase: !!getSupabase(), time: new Date().toISOString() });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  //  AUTH ROUTES (Supabase Auth, backend-only)
+  // ═══════════════════════════════════════════════════════════════
+
+  // Sign Up
+  app.post('/api/auth/signup', async (req: Request, res: Response) => {
+    const authClient = createAuthClient();
+    if (!authClient) return res.status(503).json({ error: 'Auth service not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local' });
+
+    const { email, password, fullName } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+
+    try {
+      const { data, error } = await authClient.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName || '' } }
+      });
+
+      if (error) return res.status(400).json({ error: error.message });
+
+      if (data.user) {
+        const db = getSupabase();
+        if (db) {
+          const { error: profileError } = await db.from('profiles').upsert({
+            id: data.user.id,
+            email,
+            full_name: fullName || '',
+            updated_at: new Date().toISOString()
+          });
+          if (profileError) {
+            return res.status(500).json({ error: profileError.message });
+          }
+        }
+      }
+
+      return res.json({
+        user: data.user ? {
+          id: data.user.id,
+          email: data.user.email,
+          fullName: data.user.user_metadata?.full_name || fullName,
+          createdAt: data.user.created_at
+        } : null,
+        session: data.session ? {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          expires_at: data.session.expires_at
+        } : null,
+        needsConfirmation: !data.session
+      });
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Sign In
+  app.post('/api/auth/signin', async (req: Request, res: Response) => {
+    const authClient = createAuthClient();
+    if (!authClient) return res.status(503).json({ error: 'Auth service not configured' });
+
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+
+    try {
+      const { data, error } = await authClient.auth.signInWithPassword({ email, password });
+      if (error) return res.status(401).json({ error: error.message });
+
+      return res.json({
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          fullName: data.user.user_metadata?.full_name || '',
+          avatarUrl: data.user.user_metadata?.avatar_url || null,
+          createdAt: data.user.created_at
+        },
+        session: {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          expires_at: data.session.expires_at
+        }
+      });
+    } catch (err: any) {
+      console.error('Signin error:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Refresh Token
+  app.post('/api/auth/refresh', async (req: Request, res: Response) => {
+    const authClient = createAuthClient();
+    if (!authClient) return res.status(503).json({ error: 'Auth service not configured' });
+
+    const { refresh_token } = req.body;
+    if (!refresh_token) return res.status(400).json({ error: 'refresh_token is required' });
+
+    try {
+      const { data, error } = await authClient.auth.refreshSession({ refresh_token });
+      if (error || !data.session) return res.status(401).json({ error: error?.message || 'Refresh failed' });
+
+      return res.json({
+        user: {
+          id: data.user!.id,
+          email: data.user!.email,
+          fullName: data.user!.user_metadata?.full_name || '',
+          avatarUrl: data.user!.user_metadata?.avatar_url || null,
+          createdAt: data.user!.created_at
+        },
+        session: {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          expires_at: data.session.expires_at
+        }
+      });
+    } catch {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Get Current User (protected)
+  app.get('/api/auth/me', requireAuth as any, (req: AuthenticatedRequest, res: Response) => {
+    const u = req.authUser!;
+    return res.json({
+      user: {
+        id: u.id,
+        email: u.email,
+        fullName: u.user_metadata?.full_name || '',
+        avatarUrl: u.user_metadata?.avatar_url || null,
+        createdAt: u.created_at
+      }
+    });
+  });
+
+  // Sign Out
+  app.post('/api/auth/signout', requireAuth as any, async (req: AuthenticatedRequest, res: Response) => {
+    const sb = getSupabase();
+    if (!sb) return res.status(503).json({ error: 'Auth service not configured' });
+    const token = req.authToken;
+    if (!token) return res.status(401).json({ error: 'Missing token' });
+    try {
+      const { error } = await sb.auth.admin.signOut(token);
+      if (error) {
+        return res.status(error.status || 400).json({ error: error.message });
+      }
+      return res.json({ success: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || 'Sign-out failed' });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  //  USER DATA ROUTES (Supabase Database, backend-only)
+  // ═══════════════════════════════════════════════════════════════
+
+  // Favorites
+  app.get('/api/user/favorites', requireAuth as any, async (req: AuthenticatedRequest, res: Response) => {
+    const sb = getSupabase();
+    if (!sb) return res.status(503).json({ error: 'DB not configured' });
+    try {
+      const { data, error } = await sb.from('user_favorites').select('car_id').eq('user_id', req.authUser!.id).order('created_at', { ascending: false });
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
+      return res.json({ carIds: data ? data.map((r: any) => r.car_id) : [] });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || 'Failed to fetch favorites' });
+    }
+  });
+
+  app.post('/api/user/favorites', requireAuth as any, async (req: AuthenticatedRequest, res: Response) => {
+    const sb = getSupabase();
+    if (!sb) return res.status(503).json({ error: 'DB not configured' });
+    const { carId, action } = req.body;
+    if (!carId) return res.status(400).json({ error: 'carId required' });
+    try {
+      if (action === 'remove') {
+        const { error } = await sb.from('user_favorites').delete().eq('user_id', req.authUser!.id).eq('car_id', carId);
+        if (error) return res.status(500).json({ error: error.message });
+      } else {
+        const { error } = await sb.from('user_favorites').upsert({ user_id: req.authUser!.id, car_id: carId }, { onConflict: 'user_id,car_id' });
+        if (error) return res.status(500).json({ error: error.message });
+      }
+      return res.json({ success: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Comparisons
+  app.get('/api/user/comparisons', requireAuth as any, async (req: AuthenticatedRequest, res: Response) => {
+    const sb = getSupabase();
+    if (!sb) return res.status(503).json({ error: 'DB not configured' });
+    try {
+      const { data, error } = await sb.from('user_comparisons').select('car_ids').eq('user_id', req.authUser!.id).maybeSingle();
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
+      return res.json({ carIds: data?.car_ids || [] });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || 'Failed to fetch comparisons' });
+    }
+  });
+
+  app.post('/api/user/comparisons', requireAuth as any, async (req: AuthenticatedRequest, res: Response) => {
+    const sb = getSupabase();
+    if (!sb) return res.status(503).json({ error: 'DB not configured' });
+    const { carIds } = req.body;
+    try {
+      const { error } = await sb.from('user_comparisons').upsert({ user_id: req.authUser!.id, car_ids: carIds || [], updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+      if (error) return res.status(500).json({ error: error.message });
+      return res.json({ success: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Preferences
+  app.get('/api/user/preferences', requireAuth as any, async (req: AuthenticatedRequest, res: Response) => {
+    const sb = getSupabase();
+    if (!sb) return res.status(503).json({ error: 'DB not configured' });
+    try {
+      const { data, error } = await sb.from('user_preferences').select('preferences').eq('user_id', req.authUser!.id).maybeSingle();
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
+      return res.json({ preferences: data?.preferences || null });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || 'Failed to fetch preferences' });
+    }
+  });
+
+  app.post('/api/user/preferences', requireAuth as any, async (req: AuthenticatedRequest, res: Response) => {
+    const sb = getSupabase();
+    if (!sb) return res.status(503).json({ error: 'DB not configured' });
+    const { preferences } = req.body;
+    try {
+      const { error } = await sb.from('user_preferences').upsert({ user_id: req.authUser!.id, preferences, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+      if (error) return res.status(500).json({ error: error.message });
+      return res.json({ success: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
   });
 
   // 2. Extract preferences from natural language query

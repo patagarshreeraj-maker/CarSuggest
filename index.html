@@ -3,13 +3,55 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DriveAI — Intelligent AI Car Buying Advisor</title>
-    <meta name="description" content="Personalized AI car finder, comparison engine, and 5-year ownership calculator for smart car buyers." />
+    <title>CarSuggest: The Right Car for Indian Roads</title>
+    <meta name="description" content="CarSuggest: AI-powered car recommendation, on-road prices, NCAP safety and 5-year ownership calculator for Indian buyers." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Unbounded:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      /* ── Smooth scroll ── */
+      html { scroll-behavior: smooth; }
+
+      /* ── Custom smooth scrollbar ── */
+      ::-webkit-scrollbar { width: 7px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255,90,31,0.45);
+        border-radius: 9999px;
+      }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(255,90,31,0.75); }
+
+      /* ── Scroll-snap on main sections (subtle, not strict) ── */
+      #hero, #fx, #try, #go {
+        scroll-margin-top: 72px;
+      }
+
+      /* ── Page-level fade-in ── */
+      #root { animation: cs-page-in 0.6s ease both; }
+      @keyframes cs-page-in {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0);   }
+      }
+
+      /* ── Momentum / inertia scroll via native overscroll ── */
+      * { -webkit-overflow-scrolling: touch; }
+      html, body { overscroll-behavior-y: none; }
+    </style>
   </head>
-  <body class="bg-[#F7F9FC] text-slate-800 font-['Plus_Jakarta_Sans',sans-serif] antialiased selection:bg-emerald-500/20 selection:text-emerald-700 min-h-screen">
+  <body class="bg-[#e8edf4] text-[#101624] font-['Hanken_Grotesk',system-ui,sans-serif] antialiased min-h-screen">
+    <script>
+      // Apply dark class immediately based on system preference or saved pref (no FOUC)
+      (function() {
+        var saved = localStorage.getItem('carsuggest_theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (saved === 'dark' || (!saved && prefersDark)) {
+          document.documentElement.classList.add('dark');
+          document.body.style.background = '#0a1020';
+        } else {
+          document.body.style.background = '#e8edf4';
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -3,7 +3,6 @@ import {
   Sparkles, 
   ArrowLeft, 
   ArrowRight, 
-  IndianRupee, 
   Users, 
   Navigation, 
   Fuel, 

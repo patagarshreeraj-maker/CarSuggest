@@ -27,12 +27,39 @@ import { CarDetailsModal } from './components/CarDetailsModal';
 import { ComparisonView } from './components/ComparisonView';
 import { OwnershipStudio } from './components/OwnershipStudio';
 import { AiChatDrawer } from './components/AiChatDrawer';
+import { EmiModal } from './components/EmiModal';
+import { OnRoadPriceModal } from './components/OnRoadPriceModal';
+import { EvBreakEvenModal } from './components/EvBreakEvenModal';
 
 export default function App() {
   // Auth state
   const { user } = useAuth();
   const isSignedIn = Boolean(user);
   const wasSignedInRef = useRef<boolean | null>(null);
+
+  // Dark mode state — initialized from localStorage or system preference
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    const saved = localStorage.getItem('carsuggest_theme');
+    if (saved === 'dark') return true;
+    if (saved === 'light') return false;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  // Sync dark class on <html> whenever isDark changes
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add('dark');
+      document.body.style.background = '#0a1020';
+      localStorage.setItem('carsuggest_theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      document.body.style.background = '#e8edf4';
+      localStorage.setItem('carsuggest_theme', 'light');
+    }
+  }, [isDark]);
+
+  const toggleDark = () => setIsDark(prev => !prev);
 
   // Auth modal
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -49,6 +76,9 @@ export default function App() {
   const [isFinderOpen, setIsFinderOpen] = useState(false);
   const [isProcessingAi, setIsProcessingAi] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isEmiModalOpen, setIsEmiModalOpen] = useState(false);
+  const [isOnRoadModalOpen, setIsOnRoadModalOpen] = useState(false);
+  const [isEvBreakEvenModalOpen, setIsEvBreakEvenModalOpen] = useState(false);
   const [chatInitialPrompt, setChatInitialPrompt] = useState('');
   const [selectedCarForDetails, setSelectedCarForDetails] = useState<Car | null>(null);
 
@@ -419,7 +449,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC] text-slate-800 flex flex-col font-['Plus_Jakarta_Sans'] selection:bg-emerald-500 selection:text-black">
+    <div className="min-h-screen bg-[#e8edf4] dark:bg-[#0a1020] text-[#101624] dark:text-[#eef2fb] flex flex-col font-['Hanken_Grotesk',system-ui,sans-serif] selection:bg-[#ff5a1f]/20 selection:text-[#ff5a1f]">
       {/* Top Main Navigation */}
       <Navbar
         activeTab={activeTab}
@@ -442,6 +472,11 @@ export default function App() {
         onOpenChat={() => setIsChatOpen(true)}
         hasRecommendations={scoredCars.length > 0}
         onOpenAuthModal={openAuthModal}
+        onOpenEmiCalculator={() => setIsEmiModalOpen(true)}
+        onOpenOnRoadPrice={() => setIsOnRoadModalOpen(true)}
+        onOpenEvBreakEven={() => setIsEvBreakEvenModalOpen(true)}
+        isDark={isDark}
+        onToggleDark={toggleDark}
       />
 
       {/* Main View Area */}
@@ -450,13 +485,9 @@ export default function App() {
         {activeTab === 'discover' && (
           <LandingPage
             cars={CARS_DATASET}
-            favoriteCarIds={favoriteCars.map((c) => c.id)}
-            comparedCarIds={comparedCars.map((c) => c.id)}
             onStartFinder={() => setIsFinderOpen(true)}
             onExploreCars={() => setActiveTab('explore')}
             onViewCarDetails={(car) => setSelectedCarForDetails(car)}
-            onToggleFavorite={handleToggleFavorite}
-            onToggleCompare={handleToggleCompare}
           />
         )}
 
@@ -554,18 +585,20 @@ export default function App() {
       </main>
 
       {/* FOOTER */}
-      <footer className="border-t border-slate-200 bg-[#F1F5F9] py-8 text-xs text-slate-500 mt-auto">
+      <footer className="border-t border-[#101624]/10 dark:border-white/10 bg-[#e8edf4]/90 dark:bg-[#0a1020]/90 py-8 text-xs text-[#556078] dark:text-[#9aa6c0] mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-emerald-500 flex items-center justify-center font-bold text-black text-[10px]">
-              D
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-full bg-[#101624] dark:bg-white flex items-center justify-center font-bold text-white dark:text-[#101624] text-[10px]">
+              <span className="text-[#ff5a1f]">C</span>
             </div>
-            <span className="font-bold text-slate-800">DriveAI</span>
-            <span>— Intelligent Automotive Buying Consultant</span>
+            <span className="font-['Unbounded',sans-serif] font-bold text-[#101624] dark:text-[#eef2fb]">
+              Car<b className="text-[#ff5a1f]">Suggest</b>
+            </span>
+            <span>— The right car for Indian roads</span>
           </div>
 
-          <div className="flex items-center gap-4 text-slate-500">
-            <span>Verified Indian Market Specs (2024-2025)</span>
+          <div className="flex items-center gap-4 text-[#556078] dark:text-[#9aa6c0]">
+            <span>Verified Indian Market Specs (2025-2026)</span>
             <span>•</span>
             <span>Bharat NCAP & ARAI Standards</span>
           </div>
@@ -577,10 +610,10 @@ export default function App() {
         <button
           id="floating-ai-chat-btn"
           onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-6 right-6 z-40 p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black font-bold text-xs shadow-2xl shadow-emerald-500/40 hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
+          className="fixed bottom-6 right-6 z-40 px-5 py-3 rounded-full bg-[#101624] dark:bg-[#eef2fb] hover:bg-black dark:hover:bg-white text-white dark:text-[#101624] font-bold text-xs shadow-2xl hover:shadow-[0_12px_32px_-6px_#ff5a1f] hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
         >
-          <Sparkles className="w-4 h-4" />
-          <span className="hidden sm:inline">Ask DriveAI</span>
+          <Sparkles className="w-4 h-4 text-[#ff5a1f]" />
+          <span>Ask CarSuggest AI</span>
         </button>
       )}
 
@@ -622,6 +655,24 @@ export default function App() {
           setSelectedCarForDetails(car);
           setIsChatOpen(false);
         }}
+      />
+
+      {/* Car Loan & EMI Calculator Modal */}
+      <EmiModal
+        isOpen={isEmiModalOpen}
+        onClose={() => setIsEmiModalOpen(false)}
+      />
+
+      {/* State-Wise On-Road Price Estimator Modal */}
+      <OnRoadPriceModal
+        isOpen={isOnRoadModalOpen}
+        onClose={() => setIsOnRoadModalOpen(false)}
+      />
+
+      {/* EV vs Petrol Break-Even Simulator Modal */}
+      <EvBreakEvenModal
+        isOpen={isEvBreakEvenModalOpen}
+        onClose={() => setIsEvBreakEvenModalOpen(false)}
       />
 
       {/* Authentication Modal */}

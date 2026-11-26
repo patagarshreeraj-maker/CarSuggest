@@ -25,4 +25,16 @@
   },
   "include": ["src", "server.ts"],
   "exclude": ["agentic-awesome-skills", "agents", ".agent", "node_modules", "dist"]
+  "include": [
+    "src",
+    "server.ts",
+    "scripts",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "agentic-awesome-skills",
+    ".agents"
+  ]
 }

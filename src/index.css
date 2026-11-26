@@ -1,26 +1,28 @@
 @import "tailwindcss";
 
+/* Tailwind v4: make every `dark:` utility follow the `.dark` class that the app
+   toggles on <html>, instead of the OS `prefers-color-scheme` media query. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
-  * {
-    border-color: rgba(15, 23, 42, 0.08);
+  html {
+    scroll-behavior: smooth;
   }
 
-  /* Custom modern light scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  * {
+    border-color: rgba(15, 23, 42, 0.08);
+    -webkit-overflow-scrolling: touch;
   }
-  ::-webkit-scrollbar-track {
-    background: #E2E8F0;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #CBD5E1;
-    border-radius: 9999px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #10B981;
-  }
+
+  /* ── Scrollbar – CarSuggest orange accent ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,90,31,0.4); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,90,31,0.75); }
+
+  .dark ::-webkit-scrollbar-thumb { background: rgba(255,90,31,0.5); }
 }
+
 
 .glass-panel {
   background: rgba(255, 255, 255, 0.78);
@@ -46,6 +48,7 @@
   padding: 1px;
   background: linear-gradient(135deg, rgba(0, 229, 153, 0.4), rgba(0, 240, 255, 0.1), transparent 70%);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;

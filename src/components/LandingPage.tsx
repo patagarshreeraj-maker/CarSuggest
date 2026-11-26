@@ -1,1213 +1,784 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  motion,
-  AnimatePresence,
-  useInView,
-  useMotionValue,
-  useReducedMotion,
-  useScroll,
-  useSpring,
-  useTransform,
-  type MotionValue,
-  type Variants
-} from 'motion/react';
-import {
-  ArrowRight,
-  ArrowUpRight,
   Sparkles,
-  ShieldCheck,
-  Fuel,
-  Wallet,
-  ArrowLeftRight,
-  Check,
-  Minus,
-  Plus,
-  Users,
-  Gauge,
-  Calculator
+  Search,
 } from 'lucide-react';
-import { Car, ScoredCar, UserPreferences } from '../types';
-import { calculateRecommendations } from '../lib/recommendationEngine';
-import { BrandLogosScroll } from './BrandLogosScroll';
+import { Car } from '../types';
+import { InteractiveCar3D } from './InteractiveCar3D';
 import { CarImage } from './CarImage';
 
-/* ------------------------------------------------------------------ */
-/* Motion tokens                                                       */
-/* ------------------------------------------------------------------ */
+export interface LandingPageProps {
+  cars: Car[];
+  onStartFinder: () => void;
+  onExploreCars: () => void;
+  onViewCarDetails: (car: Car) => void;
+}
 
-const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
-
-const revealUp: Variants = {
-  hidden: { opacity: 0, y: 32 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: EASE } }
-};
-
-const PHRASES = [
-  'right for your family.',
-  'safe on Indian roads.',
-  'cheap to run each month.',
-  'easy to park in the city.'
+const BRANDS = [
+  'Maruti Suzuki', 'Hyundai', 'Tata', 'Mahindra', 'Kia',
+  'Toyota', 'Honda', 'Skoda', 'Volkswagen', 'MG', 'Renault', 'Nissan'
 ];
 
-/* A sample buyer profile used to show real scores on the page. */
-const SAMPLE_PREFS: UserPreferences = {
-  budgetMinLakh: 12,
-  budgetMaxLakh: 18,
-  familySize: 5,
-  primaryUsage: 'City Commute',
-  monthlyKm: 1200,
-  preferredFuel: ['Petrol', 'Electric', 'Strong Hybrid'],
-  preferredBodyTypes: [],
-  preferredTransmission: 'Any',
-  priorities: {
-    safety: 5,
-    mileage: 4,
-    performance: 3,
-    comfortSpace: 5,
-    lowMaintenance: 4,
-    featuresTech: 4
-  }
-};
-
-const BENEFITS = [
+const FEATURES = [
   {
-    icon: Wallet,
-    title: 'Matched to your budget',
-    body: 'Set a band and see only the models you can actually buy, including the variant that fits it.'
+    title: 'AI car finder',
+    desc: 'Answer a few questions on budget, fuel, daily driving, gearbox, passengers and must-have features. Get cars picked for you.'
   },
   {
-    icon: ShieldCheck,
-    title: 'Safety carries real weight',
-    body: 'BNCAP star ratings, airbag counts and ADAS levels feed the score instead of sitting in a spec sheet.'
+    title: 'Ranked recommendations',
+    desc: 'Every car is scored against what you said matters, with AI notes on why it made your list.'
   },
   {
-    icon: Fuel,
-    title: 'Running cost, not just sticker price',
-    body: 'Fuel or charging, insurance, servicing and resale over five years, converted into one monthly figure.'
+    title: '200+ car catalog',
+    desc: 'Filter by brand, price, body type, fuel, transmission and NCAP safety rating.'
   },
   {
-    icon: ArrowLeftRight,
-    title: 'Four cars in one table',
-    body: 'Specs, scores and ownership cost side by side, so the decision takes one screen instead of four visits.'
+    title: 'Car details',
+    desc: 'Specs, engine options, mileage, boot space, ground clearance, safety features, pros and cons, and variant prices.'
+  },
+  {
+    title: 'Side-by-side comparison',
+    desc: 'Dimensions, performance, fuel economy, safety and service costs, with a verdict on which car wins each category.'
+  },
+  {
+    title: '5-year ownership studio',
+    desc: 'Depreciation, fuel or charging for your monthly km, servicing, insurance renewals and resale value, added up.'
+  },
+  {
+    title: 'AI car consultant',
+    desc: 'Ask in plain words: "Compare Creta SX(O) vs Seltos GTX+" or "Best automatic under ₹15 Lakhs for Bangalore traffic."'
+  },
+  {
+    title: 'Your account',
+    desc: 'Save favourites and comparisons, and see your earlier answers again.'
   }
 ];
 
 const STEPS = [
   {
-    icon: Users,
     title: 'Tell us how you drive',
-    body: 'Budget, family size, daily distance and what matters most. Five short steps, about a minute.'
+    desc: 'Set a budget and pick fuel, transmission, passenger count, daily driving and the features you cannot do without.'
   },
   {
-    icon: Gauge,
-    title: 'We score the whole market',
-    body: 'Every model in the catalogue is weighted on budget fit, crash safety, efficiency, space and running cost.'
+    title: 'Get a ranked shortlist',
+    desc: 'Each car is scored against your answers, then AI adds notes on why it fits.'
   },
   {
-    icon: Calculator,
-    title: 'Shortlist, compare, book a drive',
-    body: 'You get three picks with the reasoning, a full comparison table and a five year cost breakdown.'
+    title: 'Compare your finalists',
+    desc: 'Put cars side by side on dimensions, performance, fuel economy, safety and service costs, with a verdict for each category.'
+  },
+  {
+    title: 'Check what it costs to own',
+    desc: 'Run the five-year studio on your monthly kilometres before you visit a showroom.'
+  }
+];
+
+const OWNERSHIP_COSTS = [
+  {
+    title: 'Depreciation',
+    desc: 'How much value the car loses each year, shown as a curve.'
+  },
+  {
+    title: 'Fuel or charging',
+    desc: 'Running cost based on the kilometres you drive each month.'
+  },
+  {
+    title: 'Routine maintenance',
+    desc: 'Servicing and upkeep costs over the five years.'
+  },
+  {
+    title: 'Insurance renewals',
+    desc: 'The premium for each year you keep the car.'
+  },
+  {
+    title: 'Resale value',
+    desc: 'The estimated price you could sell it for at the end.'
   }
 ];
 
 const FAQS = [
   {
-    q: 'How does DriveAI score a car for me?',
-    a: 'Six factors are weighted against the priorities you set: budget fit, crash safety, mileage or electric range, cabin space, performance and maintenance cost. Safety at weight five counts roughly five times as much as performance at weight one.'
+    q: 'How are cars ranked for me?',
+    a: 'Each car gets a score from your answers, weighted by what you say matters most, such as budget, fuel, transmission and passenger count. The same answers always give the same ranking. AI then adds plain-language notes on why each car fits.'
   },
   {
-    q: 'Where do the specifications come from?',
-    a: 'Each model is stored with its published India specification: price band, engine or battery, ARAI mileage or range, seating, boot space, airbag count and BNCAP result. The score is computed from those numbers, never from a dealer pitch.'
+    q: 'Is the on-road price exact?',
+    a: 'No, it is an estimate. RTO charges, insurance and fees differ by state and by variant, so confirm the final figure with your dealer.'
   },
   {
-    q: 'Will the shortlist be the same for everyone?',
-    a: 'No. Two buyers with the same budget can get different top picks, because a family of six in Pune and a solo commuter in Bengaluru weigh safety, space and running cost differently.'
+    q: 'What does the mileage number mean?',
+    a: 'ARAI figures come from standard test conditions, so daily driving usually returns less. Use them to compare cars with each other, and expect real numbers to vary with traffic, load and driving style.'
   },
   {
-    q: 'How many cars can I compare at once?',
-    a: 'Four. The table lines up price, specs, safety equipment and the five year cost of ownership, and it keeps the last four you added.'
+    q: 'Which cars are covered?',
+    a: 'Over 200 models across hatchbacks, sedans, SUVs, MPVs and EVs. You can filter by brand, price range, fuel type, transmission and NCAP safety rating.'
   },
   {
-    q: 'What goes into the five year ownership cost?',
-    a: 'On road price, loan interest and EMI, fuel or charging for your monthly distance, insurance, periodic servicing and the resale value you can expect at the end of the period.'
+    q: 'What can the AI consultant answer?',
+    a: 'Ask in plain words, for example to compare two variants or to find the best automatic car under your budget for city traffic. It runs on Google Gemini and answers in real time.'
   },
   {
-    q: 'Do I need an account to use it?',
-    a: 'You can browse and run the finder without signing in. An account keeps your saved cars, your comparison queue and your last set of preferences on this device and on any other.'
+    q: 'What does an account give me?',
+    a: 'You can save favourite cars and comparison sets, and look back at your earlier finder answers from your dashboard.'
   }
 ];
 
-/* ------------------------------------------------------------------ */
-/* Small building blocks                                               */
-/* ------------------------------------------------------------------ */
-
-const Reveal: React.FC<{ children: React.ReactNode; delay?: number; className?: string }> = ({
-  children,
-  delay = 0,
-  className
-}) => (
-  <motion.div
-    initial="hidden"
-    whileInView="show"
-    viewport={{ once: true, margin: '-80px' }}
-    variants={{
-      hidden: { opacity: 0, y: 32 },
-      show: { opacity: 1, y: 0, transition: { duration: 0.7, delay, ease: EASE } }
-    }}
-    className={className}
-  >
-    {children}
-  </motion.div>
-);
-
-const Magnetic: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => {
-  const reduce = useReducedMotion();
-  const x = useSpring(0, { stiffness: 240, damping: 18 });
-  const y = useSpring(0, { stiffness: 240, damping: 18 });
-
-  return (
-    <motion.div
-      style={{ x, y }}
-      onMouseMove={(e) => {
-        if (reduce) return;
-        const r = e.currentTarget.getBoundingClientRect();
-        x.set(((e.clientX - r.left) / r.width - 0.5) * 10);
-        y.set(((e.clientY - r.top) / r.height - 0.5) * 8);
-      }}
-      onMouseLeave={() => {
-        x.set(0);
-        y.set(0);
-      }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-};
-
-const Counter: React.FC<{ to: number; suffix?: string; duration?: number }> = ({
-  to,
-  suffix = '',
-  duration = 1.4
-}) => {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-60px' });
-  const reduce = useReducedMotion();
-  const [value, setValue] = useState(0);
-
-  useEffect(() => {
-    if (!inView) return;
-    if (reduce) {
-      setValue(to);
-      return;
-    }
-    let frame = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / (duration * 1000));
-      const eased = 1 - Math.pow(1 - t, 3);
-      setValue(Math.round(to * eased));
-      if (t < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [inView, to, duration, reduce]);
-
-  return (
-    <span ref={ref}>
-      {value}
-      {suffix}
-    </span>
-  );
-};
-
-const TweenNumber: React.FC<{ value: number }> = ({ value }) => {
-  const reduce = useReducedMotion();
-  const [display, setDisplay] = useState(value);
-  const displayRef = useRef(value);
-
-  useEffect(() => {
-    const from = displayRef.current;
-    if (reduce || from === value) {
-      displayRef.current = value;
-      setDisplay(value);
-      return;
-    }
-
-    const start = performance.now();
-    let frame = 0;
-    const apply = (next: number) => {
-      displayRef.current = next;
-      setDisplay(next);
-    };
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / 450);
-      const eased = 1 - Math.pow(1 - t, 3);
-      apply(Math.round(from + (value - from) * eased));
-      if (t < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    // Guarantees the final number even when animation frames are throttled
-    const fallback = setTimeout(() => apply(value), 600);
-
-    return () => {
-      cancelAnimationFrame(frame);
-      clearTimeout(fallback);
-    };
-  }, [value, reduce]);
-
-  return <>{display}</>;
-};
-
-const ScoreRing: React.FC<{ value: number; size?: number; live?: boolean }> = ({
-  value,
-  size = 68,
-  live = false
-}) => {
-  const radius = size / 2 - 5;
-  const circumference = 2 * Math.PI * radius;
-  const target = circumference * (1 - value / 100);
-
-  return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E2E8F0" strokeWidth={5} />
-        {live ? (
-          <motion.circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="#059669"
-            strokeWidth={5}
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            initial={{ strokeDashoffset: circumference }}
-            animate={{ strokeDashoffset: target }}
-            transition={{ duration: 0.6, ease: EASE }}
-          />
-        ) : (
-          <motion.circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="#059669"
-            strokeWidth={5}
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            initial={{ strokeDashoffset: circumference }}
-            whileInView={{ strokeDashoffset: target }}
-            viewport={{ once: true, margin: '-40px' }}
-            transition={{ duration: 1.2, ease: EASE, delay: 0.2 }}
-          />
-        )}
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-base font-semibold leading-none text-slate-900">
-          {live ? <TweenNumber value={value} /> : value}
-        </span>
-        <span className="text-xs font-medium text-slate-500">match</span>
-      </div>
-    </div>
-  );
-};
-
-const ScoreBar: React.FC<{ label: string; value: number; delay?: number; live?: boolean }> = ({
-  label,
-  value,
-  delay = 0,
-  live = false
-}) => (
-  <div className="space-y-2">
-    <div className="flex items-center justify-between">
-      <span className="text-xs font-medium text-slate-600">{label}</span>
-      <span className="text-xs font-semibold text-slate-900">
-        {live ? <TweenNumber value={value} /> : value}
-      </span>
-    </div>
-    <div className="h-1 w-full overflow-hidden rounded-full bg-slate-200">
-      {live ? (
-        <motion.div
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: value / 100 }}
-          transition={{ duration: 0.6, ease: EASE }}
-          className="h-full w-full origin-left rounded-full bg-emerald-600"
-        />
-      ) : (
-        <motion.div
-          initial={{ scaleX: 0 }}
-          whileInView={{ scaleX: value / 100 }}
-          viewport={{ once: true, margin: '-40px' }}
-          transition={{ duration: 0.9, delay, ease: EASE }}
-          className="h-full w-full origin-left rounded-full bg-emerald-600"
-        />
-      )}
-    </div>
-  </div>
-);
-
-/* ------------------------------------------------------------------ */
-/* Hero                                                                */
-/* ------------------------------------------------------------------ */
-
-const HeroScene: React.FC<{
-  entry: ScoredCar;
-  budgetMax: number;
-  carsInBudget: number;
-  onBudgetChange: (value: number) => void;
-  onView: () => void;
-}> = ({ entry, budgetMax, carsInBudget, onBudgetChange, onView }) => {
-  const reduce = useReducedMotion();
-  const car = entry.car;
-  const score = entry.scores.overallScore;
-  const budgetPct = ((budgetMax - 8) / 52) * 100;
-  const mx = useMotionValue(0.5);
-  const my = useMotionValue(0.5);
-  const sx = useSpring(mx, { stiffness: 90, damping: 20 });
-  const sy = useSpring(my, { stiffness: 90, damping: 20 });
-  const rotateX = useSpring(useTransform(sy, [0, 1], [9, -9]), { stiffness: 150, damping: 22 });
-  const rotateY = useSpring(useTransform(sx, [0, 1], [-10, 10]), { stiffness: 150, damping: 22 });
-  const chipX = useTransform(sx, [0, 1], [-14, 14]);
-  const chipY = useTransform(sy, [0, 1], [-10, 10]);
-  const backX = useTransform(sx, [0, 1], [12, -12]);
-  const leftChipX = useTransform(sx, [0, 1], [10, -10]);
-
-  const isEV = car.fuelTypes.includes('Electric');
-  const efficiency = isEV ? `${car.specs.rangeKm} km range` : `${car.specs.mileageKmPerLitreOrKWh} km/l`;
-
-  return (
-    <div
-      className="relative mx-auto w-full max-w-sm"
-      style={{ perspective: 1300 }}
-      onMouseMove={(e) => {
-        if (reduce) return;
-        if ((e.target as HTMLElement).closest('input[type="range"]')) return;
-        const r = e.currentTarget.getBoundingClientRect();
-        mx.set((e.clientX - r.left) / r.width);
-        my.set((e.clientY - r.top) / r.height);
-      }}
-      onMouseLeave={() => {
-        mx.set(0.5);
-        my.set(0.5);
-      }}
-    >
-      {/* Rotating dashed orbit */}
-      <motion.div
-        style={{ x: backX }}
-        animate={reduce ? undefined : { rotate: 360 }}
-        transition={{ duration: 42, repeat: Infinity, ease: 'linear' }}
-        className="pointer-events-none absolute -inset-6 rounded-full border border-dashed border-emerald-600/25"
-      />
-      <motion.div
-        animate={reduce ? undefined : { rotate: -360 }}
-        transition={{ duration: 64, repeat: Infinity, ease: 'linear' }}
-        className="pointer-events-none absolute -inset-12 rounded-full border border-slate-900/[0.06]"
-      />
-
-      <motion.div style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }} className="relative">
-        <motion.div
-          animate={reduce ? undefined : { y: [0, -10, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-          className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10"
-        >
-          <motion.div
-            key={car.id}
-            initial={{ opacity: 0.35 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4, ease: EASE }}
-            className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-slate-100"
-          >
-            <CarImage
-              src={car.image}
-              alt={`${car.brand} ${car.model}`}
-              brand={car.brand}
-              model={car.model}
-              bodyType={car.bodyType}
-              isEV={isEV}
-              className="transition-transform duration-700 hover:scale-105"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-            <div className="absolute left-3 top-3 flex items-center gap-2 rounded-lg border border-white/15 bg-black/50 px-2 py-1 backdrop-blur-md">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-              </span>
-              <span className="text-xs font-medium text-white">Top match for this budget</span>
-            </div>
-            <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-emerald-300">{car.brand}</div>
-                <div className="text-lg font-semibold leading-tight text-white">{car.model}</div>
-                <div className="text-xs font-medium text-white/80">
-                  ₹{car.priceMinLakh}L to ₹{car.priceMaxLakh}L
-                </div>
-              </div>
-              <button
-                onClick={onView}
-                className="flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-xs font-semibold text-slate-900 transition-colors duration-300 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                Specs
-                <ArrowUpRight className="h-3 w-3" />
-              </button>
-            </div>
-          </motion.div>
-
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
-                <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                {car.safety.ratingStars ?? car.safety.globalNcapStars ?? 5} star {car.safety.testingAgency || 'BNCAP'}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                {isEV ? <Sparkles className="h-4 w-4 text-cyan-600" /> : <Fuel className="h-4 w-4 text-cyan-600" />}
-                {efficiency}
-              </div>
-            </div>
-            <ScoreRing value={score} live />
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <label htmlFor="hero-budget" className="text-xs font-medium text-slate-600">
-                Budget ceiling
-              </label>
-              <span className="text-sm font-semibold text-slate-900">
-                ₹<TweenNumber value={budgetMax} /> lakh
-              </span>
-            </div>
-            <input
-              id="hero-budget"
-              type="range"
-              min={8}
-              max={60}
-              step={1}
-              value={budgetMax}
-              onChange={(e) => onBudgetChange(Number(e.target.value))}
-              aria-label="Budget ceiling in lakhs"
-              aria-valuetext={`₹${budgetMax} lakh`}
-              className="budget-range mt-3 w-full"
-              style={{
-                background: `linear-gradient(to right, #059669 0%, #059669 ${budgetPct}%, #E2E8F0 ${budgetPct}%, #E2E8F0 100%)`
-              }}
-            />
-            <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-              <span>₹8L</span>
-              <span>{carsInBudget} models inside</span>
-              <span>₹60L</span>
-            </div>
-
-            <div className="mt-3 space-y-2 border-t border-slate-200 pt-3">
-              <ScoreBar label="Budget fit" value={entry.scores.budgetScore} live />
-              <ScoreBar label="Safety" value={entry.scores.safetyScore} live />
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Floating chips */}
-        <motion.div
-          style={{ x: chipX, y: chipY }}
-          className="absolute -top-10 right-2 hidden sm:block"
-        >
-          <motion.div
-            animate={reduce ? undefined : { y: [0, -9, 0] }}
-            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 shadow-xl shadow-slate-900/10 backdrop-blur"
-          >
-            <Wallet className="h-4 w-4 text-emerald-600" />
-            <div>
-              <div className="text-xs font-semibold text-slate-900">Monthly cost</div>
-              <div className="text-xs text-slate-500">EMI, fuel, insurance</div>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        <motion.div
-          style={{ x: leftChipX }}
-          className="absolute -bottom-10 left-2 hidden sm:block"
-        >
-          <motion.div
-            animate={reduce ? undefined : { y: [0, 8, 0] }}
-            transition={{ duration: 5.6, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 shadow-xl shadow-slate-900/10 backdrop-blur"
-          >
-            <ArrowLeftRight className="h-4 w-4 text-cyan-600" />
-            <div>
-              <div className="text-xs font-semibold text-slate-900">Side by side</div>
-              <div className="text-xs text-slate-500">Up to four cars</div>
-            </div>
-          </motion.div>
-        </motion.div>
-      </motion.div>
-    </div>
-  );
-};
-
-const Hero: React.FC<{
-  cars: Car[];
-  models: number;
-  brands: number;
-  onStartFinder: () => void;
-  onExploreCars: () => void;
-  onViewCarDetails: (car: Car) => void;
-}> = ({ cars, models, brands, onStartFinder, onExploreCars, onViewCarDetails }) => {
-  const [phrase, setPhrase] = useState(0);
-  const [budgetMax, setBudgetMax] = useState(18);
-  const reduce = useReducedMotion();
-
-  // Live re-score as the budget slider moves
-  const heroEntry = useMemo(() => {
-    const prefs: UserPreferences = {
-      ...SAMPLE_PREFS,
-      budgetMinLakh: 5,
-      budgetMaxLakh: budgetMax
-    };
-    return calculateRecommendations(prefs, cars)[0];
-  }, [budgetMax, cars]);
-
-  const carsInBudget = useMemo(
-    () => cars.filter((car) => car.priceMinLakh <= budgetMax).length,
-    [cars, budgetMax]
-  );
-  const sectionRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] });
-  const sceneY = useTransform(scrollYProgress, [0, 1], [0, 70]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setPhrase((i) => (i + 1) % PHRASES.length), 3400);
-    return () => clearInterval(timer);
-  }, []);
-
-  if (!heroEntry) return null;
-
-  return (
-    <section ref={sectionRef} className="relative overflow-hidden">
-      {/* Flat surface plus texture and soft light */}
-      <div className="pointer-events-none absolute inset-0 -z-20 bg-[#F7F9FC]" />
-      <div
-        className="pointer-events-none absolute inset-0 -z-10 opacity-70"
-        style={{
-          backgroundImage: 'radial-gradient(rgba(15, 23, 42, 0.10) 1px, transparent 1px)',
-          backgroundSize: '26px 26px',
-          maskImage: 'radial-gradient(ellipse 70% 60% at 50% 30%, black 30%, transparent 80%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 30%, black 30%, transparent 80%)'
-        }}
-      />
-      <motion.div
-        aria-hidden
-        animate={reduce ? undefined : { scale: [1, 1.15, 1], opacity: [0.55, 0.85, 0.55] }}
-        transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
-        className="pointer-events-none absolute -left-32 -top-24 -z-10 h-80 w-80 rounded-full bg-emerald-300/40 blur-[120px]"
-      />
-      <motion.div
-        aria-hidden
-        animate={reduce ? undefined : { scale: [1, 1.2, 1], opacity: [0.45, 0.75, 0.45] }}
-        transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 1.2 }}
-        className="pointer-events-none absolute -right-24 top-24 -z-10 h-72 w-72 rounded-full bg-cyan-200/50 blur-[110px]"
-      />
-
-      <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8 lg:pb-24 lg:pt-16">
-        <div className="grid items-center gap-12 lg:grid-cols-12">
-          <div className="lg:col-span-6 xl:col-span-7">
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: EASE }}
-              className="inline-flex items-center gap-2 rounded-full border border-emerald-600/25 bg-white/80 px-3 py-1 backdrop-blur"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-              </span>
-              <span className="text-xs font-semibold text-emerald-700">A scored shortlist, not another list of cars</span>
-            </motion.div>
-
-            <h1 className="heading-1 mt-6 max-w-[680px] text-slate-900">
-              <span className="sr-only">Find the car that is right for your family.</span>
-              <span aria-hidden="true">
-                {['Find', 'the', 'car', 'that', 'is'].map((word, i) => (
-                  <motion.span
-                    key={word}
-                    initial={{ opacity: 0, y: 26, filter: 'blur(6px)' }}
-                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                    transition={{ duration: 0.65, delay: 0.06 * i, ease: EASE }}
-                    className="mr-2 inline-block bg-gradient-to-r from-black to-[#666666] bg-clip-text text-transparent"
-                  >
-                    {word}
-                  </motion.span>
-                ))}
-              </span>
-              <span aria-hidden="true" className="mt-1 block min-h-[1.15em]">
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.span
-                    key={phrase}
-                    initial={{ y: 28, opacity: 0, filter: 'blur(8px)' }}
-                    animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
-                    exit={{ y: -28, opacity: 0, filter: 'blur(8px)' }}
-                    transition={{ duration: 0.5, ease: EASE }}
-                    className="inline-block text-emerald-600"
-                  >
-                    {PHRASES[phrase]}
-                  </motion.span>
-                </AnimatePresence>
-              </span>
-            </h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.32, ease: EASE }}
-              className="body-3 mt-6 max-w-[680px]"
-            >
-              Tell DriveAI your budget, your family and how you actually drive. Every model on the Indian market is
-              weighted on crash safety, real mileage, cabin space and five year running cost, then the three that fit
-              rise to the top.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.44, ease: EASE }}
-              className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center"
-            >
-              <Magnetic>
-                <button
-                  onClick={onStartFinder}
-                  className="group inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-600/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 active:scale-[0.98]"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Find my car with AI
-                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </button>
-              </Magnetic>
-              <button
-                onClick={onExploreCars}
-                className="group inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-base font-semibold text-slate-700 transition-colors duration-300 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
-              >
-                Browse all {models} cars
-                <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-              </button>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              className="mt-10 grid max-w-[680px] grid-cols-3 gap-4 border-t border-slate-200 pt-6"
-            >
-              {[
-                { value: models, suffix: '', label: 'models scored' },
-                { value: brands, suffix: '', label: 'brands covered' },
-                { value: 5, suffix: ' yr', label: 'cost of ownership' }
-              ].map((stat) => (
-                <div key={stat.label}>
-                  <div className="text-2xl font-semibold text-slate-900">
-                    <Counter to={stat.value} suffix={stat.suffix} />
-                  </div>
-                  <div className="text-xs text-slate-500">{stat.label}</div>
-                </div>
-              ))}
-            </motion.div>
-          </div>
-
-          <motion.div style={{ y: sceneY }} className="lg:col-span-6 xl:col-span-5">
-            <HeroScene
-              entry={heroEntry}
-              budgetMax={budgetMax}
-              carsInBudget={carsInBudget}
-              onBudgetChange={setBudgetMax}
-              onView={() => onViewCarDetails(heroEntry.car)}
-            />
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-/* ------------------------------------------------------------------ */
-/* Tagline reveal                                                      */
-/* ------------------------------------------------------------------ */
-
-const RevealWord: React.FC<{ word: string; progress: MotionValue<number>; range: [number, number]; reduce: boolean }> = ({
-  word,
-  progress,
-  range,
-  reduce
-}) => {
-  const opacity = useTransform(progress, range, [0.22, 1]);
-  return (
-    <motion.span style={{ opacity: reduce ? 1 : opacity }} className="mr-3 inline-block">
-      {word}
-    </motion.span>
-  );
-};
-
-const TaglineReveal: React.FC = () => {
-  const ref = useRef<HTMLDivElement>(null);
-  const reduce = Boolean(useReducedMotion());
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start 0.9', 'end 0.55'] });
-
-  const words =
-    'Car buying in India runs on guesswork, showroom pressure and one friend who swears by his own car. DriveAI replaces all three with a scored shortlist built around your budget and your family.'.split(
-      ' '
-    );
-
-  return (
-    <section className="relative overflow-hidden border-y border-slate-200 bg-white">
-      <div ref={ref} className="mx-auto max-w-5xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
-        <Reveal>
-          <p className="eyebrow">The whole idea</p>
-        </Reveal>
-        <p className="heading-2 mt-6 max-w-[680px] text-slate-900">
-          {words.map((word, i) => (
-            <RevealWord
-              key={`${word}-${i}`}
-              word={word}
-              progress={scrollYProgress}
-              range={[i / words.length, Math.min(1, (i + 1.6) / words.length)]}
-              reduce={reduce}
-            />
-          ))}
-        </p>
-      </div>
-    </section>
-  );
-};
-
-/* ------------------------------------------------------------------ */
-/* Sections                                                            */
-/* ------------------------------------------------------------------ */
-
-const Benefits: React.FC = () => (
-  <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-    <Reveal className="max-w-3xl">
-      <p className="eyebrow">What the score buys you</p>
-      <h2 className="heading-2 mt-4 text-slate-900">Four questions a spec sheet never answers</h2>
-      <p className="body-3 mt-4 max-w-[680px]">
-        Every section of DriveAI exists to remove one decision you would otherwise make on a hunch.
-      </p>
-    </Reveal>
-
-    <div className="mt-12 grid gap-6 sm:grid-cols-2">
-      {BENEFITS.map((benefit, i) => (
-        <motion.div
-          key={benefit.title}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: '-60px' }}
-          variants={{
-            hidden: { opacity: 0, y: 32 },
-            show: { opacity: 1, y: 0, transition: { duration: 0.65, delay: i * 0.08, ease: EASE } }
-          }}
-          whileHover={{ y: -4 }}
-          className="group rounded-2xl border border-slate-200 bg-white p-6 transition-colors duration-300 hover:border-emerald-600/40"
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600/10 text-emerald-700 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-rotate-6 group-hover:scale-105">
-              <benefit.icon className="h-5 w-5" />
-            </div>
-            <span className="text-xs font-semibold text-slate-400">0{i + 1}</span>
-          </div>
-          <h3 className="title-2 mt-6 text-slate-900">{benefit.title}</h3>
-          <p className="body-6 mt-2">{benefit.body}</p>
-        </motion.div>
-      ))}
-    </div>
-  </section>
-);
-
-const HowItWorks: React.FC = () => (
-  <section className="border-y border-slate-200 bg-white">
-    <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-      <Reveal className="max-w-3xl">
-        <p className="eyebrow">How it works</p>
-        <h2 className="heading-2 mt-4 text-slate-900">One minute in, a shortlist out</h2>
-      </Reveal>
-
-      <div className="relative mt-12">
-        <motion.div
-          initial={{ scaleX: 0 }}
-          whileInView={{ scaleX: 1 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 1.1, ease: EASE }}
-          className="absolute left-0 right-0 top-6 hidden h-px origin-left bg-slate-200 md:block"
-        />
-        <div className="grid gap-10 md:grid-cols-3 md:gap-8">
-          {STEPS.map((step, i) => (
-            <motion.div
-              key={step.title}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: '-60px' }}
-              variants={{
-                hidden: { opacity: 0, y: 28 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.65, delay: 0.15 + i * 0.15, ease: EASE } }
-              }}
-              className="relative"
-            >
-              <motion.div
-                whileHover={{ scale: 1.06 }}
-                transition={{ duration: 0.5, ease: EASE }}
-                className="relative z-10 flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-[#F7F9FC] text-sm font-semibold text-emerald-700"
-              >
-                {i + 1}
-              </motion.div>
-              <h3 className="title-2 mt-6 text-slate-900">{step.title}</h3>
-              <p className="body-6 mt-2 max-w-sm">{step.body}</p>
-              <div className="mt-4 flex items-center gap-2 text-xs font-medium text-slate-400">
-                <step.icon className="h-4 w-4" />
-                Step {i + 1} of 3
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </div>
-  </section>
-);
-
-const MatchDemo: React.FC<{
-  ranked: { car: Car; scores: ReturnType<typeof calculateRecommendations>[number]['scores'] }[];
-  onViewCarDetails: (car: Car) => void;
-  onStartFinder: () => void;
-}> = ({ ranked, onViewCarDetails, onStartFinder }) => {
-  const top = ranked[0];
-  if (!top) return null;
-
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-      <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
-        <Reveal className="lg:col-span-5">
-          <p className="eyebrow">The match engine</p>
-          <h2 className="heading-2 mt-4 text-slate-900">The score is arithmetic, not opinion</h2>
-          <p className="body-3 mt-4 max-w-[680px]">
-            This is a live result from the same engine the finder uses. The profile below is a buyer with a fifteen
-            lakh budget, five seats to fill and safety set to the highest weight.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-2">
-            {['₹12L to ₹18L budget', 'Family of five', 'City commute', 'Safety first'].map((chip) => (
-              <motion.span
-                key={chip}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, ease: EASE }}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600"
-              >
-                {chip}
-              </motion.span>
-            ))}
-          </div>
-          <button
-            onClick={onStartFinder}
-            className="group mt-8 inline-flex items-center gap-2 text-base font-semibold text-emerald-700 transition-colors duration-300 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
-          >
-            Score it with my own profile
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </button>
-        </Reveal>
-
-        <Reveal delay={0.1} className="lg:col-span-7">
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
-            <div className="flex items-center justify-between gap-4 border-b border-slate-200 p-6">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Best match</div>
-                <div className="heading-4 mt-1 text-slate-900">
-                  {top.car.brand} {top.car.model}
-                </div>
-                <div className="text-xs text-slate-500">
-                  ₹{top.car.priceMinLakh}L to ₹{top.car.priceMaxLakh}L · {top.car.bodyType}
-                </div>
-              </div>
-              <ScoreRing value={top.scores.overallScore} size={78} />
-            </div>
-
-            <div className="grid gap-6 p-6 sm:grid-cols-2">
-              <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-slate-100 sm:aspect-auto">
-                <CarImage
-                  src={top.car.image}
-                  alt={`${top.car.brand} ${top.car.model}`}
-                  brand={top.car.brand}
-                  model={top.car.model}
-                  bodyType={top.car.bodyType}
-                  isEV={top.car.fuelTypes.includes('Electric')}
-                />
-              </div>
-              <div className="space-y-4">
-                <ScoreBar label="Budget fit" value={top.scores.budgetScore} delay={0.2} />
-                <ScoreBar label="Safety" value={top.scores.safetyScore} delay={0.3} />
-                <ScoreBar label="Running cost" value={top.scores.mileageScore} delay={0.4} />
-                <ScoreBar label="Cabin space" value={top.scores.comfortSpaceScore} delay={0.5} />
-                <ScoreBar label="Maintenance" value={top.scores.maintenanceScore} delay={0.6} />
-              </div>
-            </div>
-
-            <div className="border-t border-slate-200 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Next in line</span>
-                <button
-                  onClick={() => onViewCarDetails(top.car)}
-                  className="group inline-flex items-center gap-1 text-xs font-semibold text-slate-700 transition-colors duration-300 hover:text-emerald-700"
-                >
-                  Open full specs
-                  <ArrowUpRight className="h-3 w-3 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </button>
-              </div>
-              <div className="mt-3 space-y-2">
-                {ranked.slice(1, 3).map((entry, i) => (
-                  <motion.button
-                    key={entry.car.id}
-                    initial={{ opacity: 0, x: -12 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.15 * i, ease: EASE }}
-                    onClick={() => onViewCarDetails(entry.car)}
-                    className="flex w-full items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2 text-left transition-colors duration-300 hover:bg-slate-100"
-                  >
-                    <span className="flex items-center gap-2 text-sm font-medium text-slate-800">
-                      <span className="text-xs text-slate-400">#{i + 2}</span>
-                      {entry.car.brand} {entry.car.model}
-                    </span>
-                    <span className="text-xs font-semibold text-emerald-700">{entry.scores.overallScore}% match</span>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-};
-
-const Coverage: React.FC<{ models: number; brands: number; fiveStar: number; electric: number }> = ({
-  models,
-  brands,
-  fiveStar,
-  electric
-}) => (
-  <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-    <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
-      <Reveal className="lg:col-span-5">
-        <p className="eyebrow">Coverage</p>
-        <h2 className="heading-2 mt-4 text-slate-900">The whole market, not a paid shelf</h2>
-        <p className="body-3 mt-4 max-w-[680px]">
-          From a hatchback under eight lakh to a three crore luxury SUV, the catalogue keeps every brand sold in India
-          in one scoring model.
-        </p>
-      </Reveal>
-      <div className="grid grid-cols-2 gap-4 lg:col-span-7">
-        {[
-          { value: models, label: 'models in the catalogue' },
-          { value: brands, label: 'brands on sale in India' },
-          { value: fiveStar, label: 'models with a five star rating' },
-          { value: electric, label: 'electric models with range data' }
-        ].map((stat, i) => (
-          <Reveal key={stat.label} delay={i * 0.08}>
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 transition-colors duration-300 hover:border-emerald-600/40">
-              <div className="heading-3 text-slate-900">
-                <Counter to={stat.value} />
-              </div>
-              <div className="mt-2 text-sm text-slate-500">{stat.label}</div>
-            </div>
-          </Reveal>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
-const Faq: React.FC = () => {
-  const [open, setOpen] = useState<number | null>(0);
-
-  return (
-    <section className="border-t border-slate-200 bg-white">
-      <div className="mx-auto max-w-4xl px-4 py-24 sm:px-6 lg:px-8">
-        <Reveal className="max-w-2xl">
-          <p className="eyebrow">Questions</p>
-          <h2 className="heading-2 mt-4 text-slate-900">Asked before the first test drive</h2>
-        </Reveal>
-
-        <div className="mt-10 divide-y divide-slate-200 border-y border-slate-200">
-          {FAQS.map((faq, i) => {
-            const isOpen = open === i;
-            return (
-              <div key={faq.q}>
-                <button
-                  onClick={() => setOpen(isOpen ? null : i)}
-                  aria-expanded={isOpen}
-                  className="flex w-full items-center justify-between gap-6 py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-                >
-                  <span className="title-3 text-slate-900">{faq.q}</span>
-                  <motion.span
-                    animate={{ rotate: isOpen ? 180 : 0 }}
-                    transition={{ duration: 0.5, ease: EASE }}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500"
-                  >
-                    {isOpen ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-                  </motion.span>
-                </button>
-                <div
-                  className={`grid transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                    isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-                  }`}
-                >
-                  <div className="overflow-hidden">
-                    <p className="body-6 max-w-[680px] pb-6 pr-10">{faq.a}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const FinalCta: React.FC<{ models: number; onStartFinder: () => void; onExploreCars: () => void }> = ({
-  models,
-  onStartFinder,
-  onExploreCars
-}) => {
-  const reduce = useReducedMotion();
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-      <Reveal>
-        <div className="relative overflow-hidden rounded-3xl bg-emerald-700 px-6 py-16 text-center sm:px-12">
-          <motion.div
-            aria-hidden
-            animate={reduce ? undefined : { scale: [1, 1.3, 1], opacity: [0.35, 0.6, 0.35] }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-            className="pointer-events-none absolute -left-16 -top-24 h-64 w-64 rounded-full bg-emerald-400/40 blur-[90px]"
-          />
-          <motion.div
-            aria-hidden
-            animate={reduce ? undefined : { scale: [1.2, 1, 1.2], opacity: [0.4, 0.2, 0.4] }}
-            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-            className="pointer-events-none absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-cyan-300/30 blur-[100px]"
-          />
-          <div className="relative mx-auto max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">Start here</p>
-            <h2 className="heading-2 mt-4 text-white">Stop guessing. Start with your budget.</h2>
-            <p className="mx-auto mt-4 max-w-[680px] text-base font-medium text-emerald-50">
-              Five questions, {models} models scored, three that fit. No account needed to see the result.
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Magnetic>
-                <button
-                  onClick={onStartFinder}
-                  className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-base font-semibold text-emerald-800 transition-all duration-300 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-700 active:scale-[0.98]"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Open the AI car finder
-                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </button>
-              </Magnetic>
-              <button
-                onClick={onExploreCars}
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-base font-semibold text-white/90 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                Browse the catalogue
-                <ArrowUpRight className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-emerald-100">
-              <Check className="h-3.5 w-3.5" />
-              Free to use, no credit card, no dealer referral
-            </div>
-          </div>
-        </div>
-      </Reveal>
-    </section>
-  );
-};
-
-/* ------------------------------------------------------------------ */
-/* Page                                                                */
-/* ------------------------------------------------------------------ */
-
-interface LandingPageProps {
-  cars: Car[];
-  favoriteCarIds: string[];
-  comparedCarIds: string[];
-  onStartFinder: () => void;
-  onExploreCars: () => void;
-  onViewCarDetails: (car: Car) => void;
-  onToggleFavorite: (car: Car) => void;
-  onToggleCompare: (car: Car) => void;
-}
+const BUDGET_BUCKETS = [
+  { max: 8, name: 'Entry hatchbacks', examples: 'Alto K10, S-Presso and Tiago' },
+  { max: 12, name: 'Premium hatchbacks and sub-4m SUVs', examples: 'Swift, Baleno, Punch and Exter' },
+  { max: 18, name: 'Compact SUVs and sedans', examples: 'Creta, Seltos, Brezza and Verna' },
+  { max: 30, name: 'Midsize SUVs and MPVs', examples: 'Harrier, XUV700 and Innova Hycross' },
+  { max: 100, name: 'Premium SUVs and EVs', examples: 'Fortuner, Tucson and Carnival' }
+];
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   cars,
-  favoriteCarIds,
-  comparedCarIds,
   onStartFinder,
   onExploreCars,
   onViewCarDetails,
-  onToggleFavorite,
-  onToggleCompare
 }) => {
-  const { scrollYProgress } = useScroll();
-  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 26, restDelta: 0.001 });
+  // 3D Car selection: 0: Fortuner, 1: Creta, 2: Polo, 3: All 3 Models
+  const [selectedCar3D, setSelectedCar3D] = useState<number>(3);
 
-  const ranked = useMemo(() => calculateRecommendations(SAMPLE_PREFS, cars), [cars]);
+  // In-page mini wizard state
+  const [step, setStep] = useState<number>(0);
+  const [budget, setBudget] = useState<number>(12);
+  const [fuel, setFuel] = useState<string>('Petrol');
+  const [gear, setGear] = useState<string>('Manual');
+  const [road, setRoad] = useState<string>('City traffic');
+  const [passengers, setPassengers] = useState<string>('3–4');
+  const [priority, setPriority] = useState<string>('Safety rating');
 
-  const stats = useMemo(() => {
-    const brands = new Set(cars.map((car) => car.brand));
-    const fiveStar = cars.filter(
-      (car) => car.safety.ratingStars === 5 || car.safety.globalNcapStars === 5
-    ).length;
-    const electric = cars.filter(
-      (car) => car.fuelTypes.includes('Electric') && Boolean(car.specs.rangeKm)
-    ).length;
-    return { models: cars.length, brands: brands.size, fiveStar, electric };
-  }, [cars]);
+  // Search input state
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const heroEntry = ranked[0];
+  // Mouse tracking for subtle ambient glow
+  const glowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (glowRef.current) {
+        glowRef.current.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+      }
+    };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, []);
 
-  if (!heroEntry) return null;
+  // Intersection observer for scroll reveal animations
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('cs-in');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    document.querySelectorAll('.cs-rv').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  // Matching shortlist for mini-wizard results
+  const matchingCars = useMemo(() => {
+    if (!cars || !Array.isArray(cars)) return [];
+    return cars
+      .filter((c) => {
+        const minP = c.priceMinLakh ?? 0;
+        const maxP = c.priceMaxLakh ?? 100;
+        return minP <= budget + 3 && maxP >= budget - 3;
+      })
+      .slice(0, 3);
+  }, [cars, budget]);
+
+  const activeBucket = useMemo(() => {
+    return BUDGET_BUCKETS.find((b) => budget <= b.max) || BUDGET_BUCKETS[BUDGET_BUCKETS.length - 1];
+  }, [budget]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      onExploreCars();
+    } else {
+      onStartFinder();
+    }
+  };
 
   return (
-    <div className="relative">
-      <motion.div
-        style={{ scaleX: progress }}
-        className="fixed inset-x-0 top-0 z-50 h-0.5 origin-left bg-emerald-600"
-        aria-hidden
+    <div className="relative min-h-screen bg-[#d9dfe8] dark:bg-[#0a1020] text-[#101624] dark:text-[#eef2fb] font-['Hanken_Grotesk',system-ui,sans-serif] overflow-x-hidden selection:bg-[#ff5a1f]/20 selection:text-[#ff5a1f]">
+      {/* 3D Scene in background */}
+      <InteractiveCar3D
+        selectedCarIndex={selectedCar3D}
+        onCarSelect={(idx) => setSelectedCar3D(idx)}
       />
 
-      <Hero
-        cars={cars}
-        models={stats.models}
-        brands={stats.brands}
-        onStartFinder={onStartFinder}
-        onExploreCars={onExploreCars}
-        onViewCarDetails={onViewCarDetails}
+      {/* Radial glow follower */}
+      <div
+        ref={glowRef}
+        className="fixed top-0 left-0 w-[560px] h-[560px] -ml-[280px] -mt-[280px] rounded-full bg-[#ff5a1f]/15 blur-[120px] pointer-events-none z-0 transition-transform duration-100 ease-out"
       />
 
-      <TaglineReveal />
+      {/* Scoped CSS styles matching landigpage.html */}
+      <style>{`
+        .cs-font-display { font-family: 'Unbounded', sans-serif; }
+        .cs-rv {
+          opacity: 0;
+          clip-path: inset(0 100% 0 0);
+          transition: clip-path 1.1s cubic-bezier(.7,0,.2,1) var(--d, 0s), opacity .4s var(--d, 0s);
+        }
+        .cs-rv.cs-in {
+          opacity: 1;
+          clip-path: inset(-20px -20px -20px -20px);
+        }
+        @keyframes cs-roll {
+          from { left: -30px; }
+          to { left: 70px; }
+        }
+        .cs-cue-dash::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          width: 30px;
+          background: #ff5a1f;
+          animation: cs-roll 1.2s linear infinite;
+        }
+        @keyframes cs-marquee {
+          to { transform: translateX(-50%); }
+        }
+        .cs-marquee-inner {
+          display: inline-block;
+          animation: cs-marquee 28s linear infinite;
+          white-space: nowrap;
+        }
+        .cs-r2:hover {
+          padding-left: 24px;
+          background: linear-gradient(90deg, rgba(255,90,31,0.12), transparent);
+        }
+      `}</style>
 
-      <Benefits />
+      {/* Main Content */}
+      <main id="top" className="relative z-10">
+        {/* ── SECTION 1: HERO ── */}
+        <section id="hero" className="min-h-screen px-[5vw] pt-[20vh] pb-[10vh] flex flex-col justify-center">
+          <div className="max-w-4xl">
+            <h1 className="cs-font-display font-extrabold text-[clamp(2.4rem,6.4vw,5.4rem)] leading-[1.02] tracking-tight text-[#101624] dark:text-[#eef2fb] mb-6">
+              <span className="block overflow-hidden pb-1">
+                <span className="inline-block transform animate-[fadeIn_0.8s_ease-out_forwards]">
+                  The right car
+                </span>
+              </span>
+              <span className="block overflow-hidden pb-1">
+                <span className="inline-block text-[#ff5a1f] transform animate-[fadeIn_1.0s_ease-out_forwards]">
+                  for Indian roads.
+                </span>
+              </span>
+            </h1>
 
-      <HowItWorks />
+            <p className="cs-rv text-base sm:text-lg text-[#556078] dark:text-[#9aa6c0] max-w-2xl leading-relaxed mb-8" style={{ '--d': '0.3s' } as React.CSSProperties}>
+              Search over 200 car models, answer four questions for a shortlist, or ask the AI consultant.
+              Every car is checked for on-road price, ARAI mileage, Global and Bharat NCAP ratings and what it costs to own for five years.
+            </p>
 
-      <MatchDemo ranked={ranked} onViewCarDetails={onViewCarDetails} onStartFinder={onStartFinder} />
+            {/* Quick Search Form */}
+            <form
+              onSubmit={handleSearchSubmit}
+              className="cs-rv flex items-center gap-2 max-w-xl p-2 rounded-full border border-[#101624]/16 dark:border-white/16 bg-white/70 dark:bg-[#0e162a]/70 backdrop-blur-xl shadow-lg focus-within:border-[#ff5a1f] focus-within:ring-2 focus-within:ring-[#ff5a1f]/30 transition-all mb-4"
+              style={{ '--d': '0.5s' } as React.CSSProperties}
+            >
+              <Search className="w-5 h-5 text-[#556078] dark:text-[#9aa6c0] ml-3 shrink-0" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search a car or ask a question (e.g. Creta vs Seltos)"
+                className="w-full bg-transparent px-2 py-1.5 text-sm text-[#101624] dark:text-[#eef2fb] outline-none placeholder:text-[#556078]/70 dark:placeholder:text-[#9aa6c0]/70"
+              />
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-full bg-[#101624] dark:bg-white text-white dark:text-[#101624] text-xs font-bold hover:scale-105 transition-all shrink-0 cursor-pointer"
+              >
+                Search
+              </button>
+            </form>
 
-      <BrandLogosScroll onExploreCars={onExploreCars} />
+            {/* Popular quick chips */}
+            <div className="cs-rv flex flex-wrap gap-2 mb-10" style={{ '--d': '0.65s' } as React.CSSProperties}>
+              {[
+                'Creta vs Seltos',
+                'Best automatic under ₹15 Lakhs',
+                'Safest compact SUV',
+                'EV for city commute',
+                '7-Seater family MPV'
+              ].map((chip, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery(chip);
+                    onExploreCars();
+                  }}
+                  className="px-3.5 py-1.5 rounded-full border border-[#101624]/16 dark:border-white/16 bg-white/40 dark:bg-slate-900/40 text-xs text-[#556078] dark:text-[#9aa6c0] hover:border-[#ff5a1f] hover:text-[#ff5a1f] transition-all cursor-pointer"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
 
-      <Coverage
-        models={stats.models}
-        brands={stats.brands}
-        fiveStar={stats.fiveStar}
-        electric={stats.electric}
-      />
+            {/* CTA action buttons */}
+            <div className="cs-rv flex flex-wrap gap-3 items-center" style={{ '--d': '0.8s' } as React.CSSProperties}>
+              <button
+                onClick={onStartFinder}
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#ff5a1f] text-white font-bold text-sm hover:scale-105 hover:shadow-[0_12px_32px_-6px_#ff5a1f] transition-all cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                Launch CarSuggest AI
+              </button>
+              <button
+                onClick={onExploreCars}
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-[#101624]/16 dark:border-white/16 bg-white/60 dark:bg-slate-900/60 font-semibold text-sm hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                Browse 200+ Cars
+              </button>
+            </div>
 
-      <Faq />
+            {/* Scroll cue indicator */}
+            <div className="cs-rv flex items-center gap-3 mt-14 text-xs font-medium text-[#556078] dark:text-[#9aa6c0]" style={{ '--d': '1s' } as React.CSSProperties}>
+              <i className="w-[70px] h-[2px] bg-[#101624]/16 dark:bg-white/16 relative overflow-hidden cs-cue-dash inline-block rounded-full" />
+              <span>Scroll to drive &amp; explore</span>
+            </div>
+          </div>
+        </section>
 
-      <FinalCta models={stats.models} onStartFinder={onStartFinder} onExploreCars={onExploreCars} />
+        {/* ── SECTION 2: MARQUEE TICKER ── */}
+        <div className="overflow-hidden py-4 border-y border-[#101624]/12 dark:border-white/12 bg-white/50 dark:bg-[#0e162a]/50 backdrop-blur-md">
+          <div className="cs-marquee-inner flex items-center gap-8 cs-font-display text-sm font-semibold text-[#556078] dark:text-[#9aa6c0]">
+            {[...BRANDS, ...BRANDS].map((brand, i) => (
+              <span key={i} className="inline-flex items-center gap-3">
+                <span>{brand}</span>
+                <i className="w-1.5 h-1.5 rounded-full bg-[#ff5a1f]" />
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* ── SECTION 3: STATS STRIP ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 border-b border-[#101624]/12 dark:border-white/12 bg-white/40 dark:bg-[#0e162a]/40 backdrop-blur-md">
+          {[
+            { val: '200+', label: 'Car models in the catalog' },
+            { val: '5', label: 'Categories: hatchback, sedan, SUV, MPV & EV' },
+            { val: '5 Years', label: 'Of ownership cost, worked out per car' },
+            { val: 'NCAP', label: 'Safety ratings in filters and car details' }
+          ].map((st, i) => (
+            <div key={i} className="p-6 md:p-8 border-l first:border-l-0 border-[#101624]/12 dark:border-white/12">
+              <div className="cs-font-display font-extrabold text-2xl md:text-3xl tracking-tight text-[#101624] dark:text-[#eef2fb] mb-1">
+                {st.val}
+              </div>
+              <div className="text-xs text-[#556078] dark:text-[#9aa6c0] leading-snug">
+                {st.label}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── SECTION 4: FEATURES GRID (#fx) ── */}
+        <section id="fx" className="min-h-screen px-[5vw] py-[14vh] flex flex-col justify-center">
+          <div className="max-w-2xl md:ml-auto">
+            <h2 className="cs-rv cs-font-display font-extrabold text-[clamp(1.8rem,4vw,3.2rem)] leading-tight text-[#101624] dark:text-[#eef2fb] mb-3">
+              Everything car buyers in India argue about, settled.
+            </h2>
+            <p className="cs-rv text-sm md:text-base text-[#556078] dark:text-[#9aa6c0] mb-8">
+              No sponsor placements, no dealer commissions, no phone calls. Just verified automotive data for Indian driving conditions.
+            </p>
+
+            <div className="border-t border-[#101624]/12 dark:border-white/12">
+              {FEATURES.map((f, i) => (
+                <div
+                  key={i}
+                  className="cs-r2 cs-rv grid grid-cols-1 md:grid-cols-[1fr_1.4fr] gap-2 md:gap-6 py-5 px-3 border-bottom border-b border-[#101624]/12 dark:border-white/12 transition-all cursor-pointer rounded-xl"
+                  style={{ '--d': `${i * 0.08}s` } as React.CSSProperties}
+                  onClick={onStartFinder}
+                >
+                  <h3 className="cs-font-display font-bold text-sm md:text-base text-[#101624] dark:text-[#eef2fb]">
+                    {f.title}
+                  </h3>
+                  <p className="text-xs text-[#556078] dark:text-[#9aa6c0] leading-relaxed">
+                    {f.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 5: HOW IT WORKS (#how) ── */}
+        <section id="how" className="min-h-screen px-[5vw] py-[14vh] flex flex-col justify-center">
+          <div className="max-w-2xl">
+            <h2 className="cs-rv cs-font-display font-extrabold text-[clamp(1.8rem,4vw,3.2rem)] leading-tight text-[#101624] dark:text-[#eef2fb] mb-8">
+              From budget to shortlist in four steps.
+            </h2>
+
+            <ol className="border-t border-[#101624]/12 dark:border-white/12 list-none p-0 m-0">
+              {STEPS.map((stepItem, i) => (
+                <li
+                  key={i}
+                  className="cs-rv grid grid-cols-[3.2rem_1fr] gap-4 py-6 border-b border-[#101624]/12 dark:border-white/12"
+                  style={{ '--d': `${i * 0.1}s` } as React.CSSProperties}
+                >
+                  <span className="cs-font-display font-black text-2xl text-[#ff5a1f]">
+                    0{i + 1}
+                  </span>
+                  <div>
+                    <h3 className="cs-font-display font-bold text-sm md:text-base text-[#101624] dark:text-[#eef2fb] mb-1">
+                      {stepItem.title}
+                    </h3>
+                    <p className="text-xs text-[#556078] dark:text-[#9aa6c0] leading-relaxed">
+                      {stepItem.desc}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ── SECTION 6: INTERACTIVE MINI WIZARD (#try) ── */}
+        <section id="try" className="min-h-screen px-[5vw] py-[14vh] flex flex-col justify-center">
+          <div className="max-w-xl md:ml-auto">
+            <div className="cs-rv p-6 md:p-8 rounded-3xl border border-[#101624]/16 dark:border-white/16 bg-white/70 dark:bg-[#0e162a]/70 backdrop-blur-xl shadow-2xl">
+              {/* Step indicator */}
+              <div className="flex items-center justify-between text-xs text-[#556078] dark:text-[#9aa6c0] mb-2 font-medium">
+                <span>{step < 4 ? `Question ${step + 1} of 4` : 'Your Starting Point'}</span>
+                <span className="text-[#ff5a1f] font-semibold">{Math.min(step + 1, 4) * 25}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-[#101624]/10 dark:bg-white/10 rounded-full overflow-hidden mb-6">
+                <div
+                  className="h-full bg-[#ff5a1f] rounded-full transition-all duration-300"
+                  style={{ width: `${(Math.min(step + 1, 4) / 4) * 100}%` }}
+                />
+              </div>
+
+              {/* STEP 0: Budget */}
+              {step === 0 && (
+                <div>
+                  <h2 className="cs-font-display font-bold text-xl text-[#101624] dark:text-[#eef2fb] mb-4">
+                    What is your budget?
+                  </h2>
+                  <div className="cs-font-display text-3xl font-extrabold text-[#101624] dark:text-[#eef2fb] mb-2">
+                    ₹{budget} <small className="text-xs font-normal text-[#556078] dark:text-[#9aa6c0]">Lakhs ex-showroom</small>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="50"
+                    step="0.5"
+                    value={budget}
+                    onChange={(e) => setBudget(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-[#101624]/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#ff5a1f] my-4"
+                  />
+                  <p className="text-xs text-[#556078] dark:text-[#9aa6c0] leading-relaxed">
+                    On-road, roughly <b className="text-[#101624] dark:text-[#eef2fb]">₹{(budget * 1.15).toFixed(1)} Lakhs</b>. RTO, insurance and fees vary by state.
+                  </p>
+                </div>
+              )}
+
+              {/* STEP 1: Fuel & Gearbox */}
+              {step === 1 && (
+                <div>
+                  <h2 className="cs-font-display font-bold text-xl text-[#101624] dark:text-[#eef2fb] mb-4">
+                    What should power it?
+                  </h2>
+                  <div className="text-xs text-[#556078] dark:text-[#9aa6c0] mb-2 font-semibold uppercase tracking-wider">Fuel Type</div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {['Petrol', 'Diesel', 'CNG', 'Hybrid', 'Electric'].map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => setFuel(f)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                          fuel === f
+                            ? 'bg-[#ff5a1f] text-white border border-[#ff5a1f]'
+                            : 'border border-[#101624]/16 dark:border-white/16 text-[#101624] dark:text-[#eef2fb] hover:border-[#ff5a1f]'
+                        }`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="text-xs text-[#556078] dark:text-[#9aa6c0] mb-2 font-semibold uppercase tracking-wider">Transmission</div>
+                  <div className="flex flex-wrap gap-2">
+                    {['Manual', 'Automatic'].map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setGear(g)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                          gear === g
+                            ? 'bg-[#ff5a1f] text-white border border-[#ff5a1f]'
+                            : 'border border-[#101624]/16 dark:border-white/16 text-[#101624] dark:text-[#eef2fb] hover:border-[#ff5a1f]'
+                        }`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: Roads & Passengers */}
+              {step === 2 && (
+                <div>
+                  <h2 className="cs-font-display font-bold text-xl text-[#101624] dark:text-[#eef2fb] mb-4">
+                    Where do you drive, and with whom?
+                  </h2>
+                  <div className="text-xs text-[#556078] dark:text-[#9aa6c0] mb-2 font-semibold uppercase tracking-wider">Driving Terrain</div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {['City traffic', 'Ghat roads', 'Highway runs', 'Rough roads'].map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setRoad(r)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                          road === r
+                            ? 'bg-[#ff5a1f] text-white border border-[#ff5a1f]'
+                            : 'border border-[#101624]/16 dark:border-white/16 text-[#101624] dark:text-[#eef2fb] hover:border-[#ff5a1f]'
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="text-xs text-[#556078] dark:text-[#9aa6c0] mb-2 font-semibold uppercase tracking-wider">Passenger Capacity</div>
+                  <div className="flex flex-wrap gap-2">
+                    {['1–2', '3–4', '5–7'].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPassengers(p)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                          passengers === p
+                            ? 'bg-[#ff5a1f] text-white border border-[#ff5a1f]'
+                            : 'border border-[#101624]/16 dark:border-white/16 text-[#101624] dark:text-[#eef2fb] hover:border-[#ff5a1f]'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: Priorities */}
+              {step === 3 && (
+                <div>
+                  <h2 className="cs-font-display font-bold text-xl text-[#101624] dark:text-[#eef2fb] mb-4">
+                    What matters most?
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {['Safety rating', 'Mileage', 'Comfort', 'Low running cost', 'Boot space'].map((pr) => (
+                      <button
+                        key={pr}
+                        type="button"
+                        onClick={() => setPriority(pr)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                          priority === pr
+                            ? 'bg-[#ff5a1f] text-white border border-[#ff5a1f]'
+                            : 'border border-[#101624]/16 dark:border-white/16 text-[#101624] dark:text-[#eef2fb] hover:border-[#ff5a1f]'
+                        }`}
+                      >
+                        {pr}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: Results preview */}
+              {step === 4 && (
+                <div>
+                  <h2 className="cs-font-display font-bold text-xl text-[#101624] dark:text-[#eef2fb] mb-2">
+                    Start your shortlist here
+                  </h2>
+                  <div className="cs-font-display font-extrabold text-lg text-[#ff5a1f] mb-2">
+                    {activeBucket.name}
+                  </div>
+                  <p className="text-xs text-[#556078] dark:text-[#9aa6c0] leading-relaxed mb-4">
+                    Models in this segment include {activeBucket.examples}. Built for {road.toLowerCase()} with {passengers} passengers, {fuel.toLowerCase()} and {gear.toLowerCase()} gearbox, scored on {priority.toLowerCase()} first.
+                  </p>
+
+                  {/* Matching cars preview */}
+                  {matchingCars.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      {matchingCars.map((car) => (
+                        <div
+                          key={car.id}
+                          onClick={() => onViewCarDetails(car)}
+                          className="p-2 rounded-xl border border-[#101624]/10 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 hover:border-[#ff5a1f]/50 cursor-pointer text-left transition-all"
+                        >
+                          <div className="h-14 rounded-lg overflow-hidden mb-1.5 bg-slate-200 dark:bg-slate-800">
+                            <CarImage
+                              src={car.image}
+                              alt={car.name}
+                              brand={car.brand}
+                              model={car.model}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="text-[10px] font-bold text-[#ff5a1f] uppercase truncate">{car.brand}</div>
+                          <div className="text-xs font-bold text-[#101624] dark:text-white truncate">{car.model}</div>
+                          <div className="text-[10px] text-[#556078] dark:text-[#9aa6c0]">₹{car.priceMinLakh}L+</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Navigation buttons */}
+              <div className="flex items-center gap-3 mt-6 pt-4 border-t border-[#101624]/10 dark:border-white/10">
+                {step > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStep((s) => (s === 4 ? 0 : s - 1))}
+                    className="px-5 py-2 rounded-full border border-[#101624]/16 dark:border-white/16 text-xs font-semibold hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer"
+                  >
+                    {step === 4 ? 'Start over' : 'Back'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (step < 4) {
+                      setStep((s) => s + 1);
+                    } else {
+                      onStartFinder();
+                    }
+                  }}
+                  className="ml-auto px-6 py-2.5 rounded-full bg-[#101624] dark:bg-white text-white dark:text-[#101624] text-xs font-bold hover:scale-105 transition-all cursor-pointer"
+                >
+                  {step < 3 ? 'Next' : step === 3 ? 'Show my shortlist' : 'Open Full AI Finder'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 7: 5-YEAR OWNERSHIP STUDIO (#own) ── */}
+        <section id="own" className="min-h-screen px-[5vw] py-[14vh] flex flex-col justify-center">
+          <div className="max-w-2xl">
+            <h2 className="cs-rv cs-font-display font-extrabold text-[clamp(1.8rem,4vw,3.2rem)] leading-tight text-[#101624] dark:text-[#eef2fb] mb-3">
+              Know the real cost before you sign.
+            </h2>
+            <p className="cs-rv text-sm md:text-base text-[#556078] dark:text-[#9aa6c0] leading-relaxed mb-8">
+              The sticker price is only the start. The 5-year ownership studio adds up what a car costs after you drive it home, so a cheaper car does not turn out dearer.
+            </p>
+
+            <div className="border-t border-[#101624]/12 dark:border-white/12">
+              {OWNERSHIP_COSTS.map((cost, i) => (
+                <div
+                  key={i}
+                  className="cs-r2 cs-rv grid grid-cols-1 md:grid-cols-[1fr_1.4fr] gap-2 md:gap-6 py-5 px-3 border-b border-[#101624]/12 dark:border-white/12 transition-all cursor-pointer rounded-xl"
+                  style={{ '--d': `${i * 0.08}s` } as React.CSSProperties}
+                  onClick={onExploreCars}
+                >
+                  <h3 className="cs-font-display font-bold text-sm md:text-base text-[#101624] dark:text-[#eef2fb]">
+                    {cost.title}
+                  </h3>
+                  <p className="text-xs text-[#556078] dark:text-[#9aa6c0] leading-relaxed">
+                    {cost.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 8: FAQ ACCORDION (#faq) ── */}
+        <section id="faq" className="min-h-screen px-[5vw] py-[14vh] flex flex-col justify-center">
+          <div className="max-w-3xl">
+            <h2 className="cs-rv cs-font-display font-extrabold text-[clamp(1.8rem,4vw,3.2rem)] leading-tight text-[#101624] dark:text-[#eef2fb] mb-8">
+              Questions buyers ask first.
+            </h2>
+
+            <div className="cs-rv p-6 md:p-8 rounded-3xl border border-[#101624]/16 dark:border-white/16 bg-white/70 dark:bg-[#0e162a]/70 backdrop-blur-xl shadow-lg">
+              {FAQS.map((faq, i) => (
+                <details
+                  key={i}
+                  className="py-4 border-b last:border-b-0 border-[#101624]/12 dark:border-white/12 group cursor-pointer"
+                >
+                  <summary className="flex items-center justify-between gap-4 cs-font-display font-bold text-sm md:text-base text-[#101624] dark:text-[#eef2fb] list-none select-none">
+                    <span>{faq.q}</span>
+                    <span className="text-[#ff5a1f] font-normal text-lg transition-transform group-open:rotate-45">
+                      +
+                    </span>
+                  </summary>
+                  <p className="text-xs md:text-sm text-[#556078] dark:text-[#9aa6c0] leading-relaxed mt-3">
+                    {faq.a}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 9: FINAL CTA (#go) ── */}
+        <section id="go" className="min-h-[70vh] px-[5vw] py-[14vh] flex flex-col justify-center items-center text-center max-w-4xl mx-auto">
+          <div className="cs-rv">
+            <h2 className="cs-font-display font-extrabold text-[clamp(2rem,5vw,4.4rem)] leading-tight text-[#101624] dark:text-[#eef2fb] mb-4">
+              Your next car is one question away.
+            </h2>
+            <p className="text-sm md:text-base text-[#556078] dark:text-[#9aa6c0] max-w-xl mx-auto mb-8">
+              Compare cars side by side, see five years of ownership cost, and save your shortlist to your account.
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+              <button
+                onClick={onStartFinder}
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#ff5a1f] text-white font-bold text-sm hover:scale-105 hover:shadow-[0_12px_32px_-6px_#ff5a1f] transition-all cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                Launch CarSuggest AI
+              </button>
+              <button
+                onClick={onExploreCars}
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-[#101624]/16 dark:border-white/16 bg-white/70 dark:bg-slate-900/70 font-semibold text-sm hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                Browse 200+ Cars
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* ── FLOATING 3D CAR SWITCHER (.cs) ── */}
+      <div
+        className="fixed left-5 bottom-6 z-30 flex items-center gap-1 p-1.5 rounded-full border border-[#101624]/16 dark:border-white/16 bg-white/80 dark:bg-[#0e162a]/80 backdrop-blur-xl shadow-xl text-xs font-semibold"
+        role="group"
+        aria-label="Choose the car on the page"
+      >
+        {[
+          { idx: 3, label: 'All 3 Models' },
+          { idx: 0, label: 'Toyota Fortuner' },
+          { idx: 1, label: 'Hyundai Creta' },
+          { idx: 2, label: 'VW Polo' }
+        ].map((carOpt) => (
+          <button
+            key={carOpt.idx}
+            type="button"
+            onClick={() => setSelectedCar3D(carOpt.idx)}
+            className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
+              selectedCar3D === carOpt.idx
+                ? 'bg-[#ff5a1f] text-white shadow-sm'
+                : 'text-[#556078] dark:text-[#9aa6c0] hover:text-[#101624] dark:hover:text-white'
+            }`}
+          >
+            {carOpt.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
-
-export default LandingPage;
