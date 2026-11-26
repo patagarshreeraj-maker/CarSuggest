@@ -8,7 +8,4 @@ coverage/
 !.env.example
 .freebuff/
 .cloud-attachments/
-.agent/
-agents/
-agentic-awesome-skills/
 
