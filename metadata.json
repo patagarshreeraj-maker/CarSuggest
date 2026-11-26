@@ -1,0 +1,6 @@
+{
+  "name": "DriveAI",
+  "description": "Premium AI-powered car buying advisor offering personalized recommendations, deep comparisons, and 5-year ownership cost calculations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
